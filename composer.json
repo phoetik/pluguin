@@ -1,5 +1,5 @@
 {
-    "name": "webbax/pluguin",
+    "name": "phoetik/pluguin",
     "license": "MIT",
     "autoload": {
         "psr-4": {
