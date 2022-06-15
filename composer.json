@@ -1,0 +1,21 @@
+{
+    "name": "webbax/pluguin",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Pluguin\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Sina Radmanesh",
+            "email": "sina@webbax.dev"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^7.4",
+        "illuminate/container": "^8.83",
+        "illuminate/database": "^8.83"
+    }
+}
