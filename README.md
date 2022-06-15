@@ -11,8 +11,8 @@ In laoreet ornare velit, et accumsan libero imperdiet et. Aenean tempus aliquet 
 
 ## Help and docs
 
-- [Documentation](https://docs.guzzlephp.org)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/guzzle)
+- [Documentation](https://github.com)
+- [Stack Overflow](https://stackoverflow.com/)
 
 
 ## Installing Pluguin
