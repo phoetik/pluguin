@@ -5,40 +5,7 @@ namespace Pluguin\Foundation\Plugin;
 trait Bootstrap
 {
     
-    /**
-     * Indicates if the application has been bootstrapped before.
-     *
-     * @var bool
-     */
-    protected $hasBeenBootstrapped = false;
-
-    /**
-     * Indicates if the application has "booted".
-     *
-     * @var bool
-     */
-    protected $booted = false;
-
-    /**
-     * The array of booting callbacks.
-     *
-     * @var callable[]
-     */
-    protected $bootingCallbacks = [];
-
-    /**
-     * The array of booted callbacks.
-     *
-     * @var callable[]
-     */
-    protected $bootedCallbacks = [];
-
-    /**
-     * The array of terminating callbacks.
-     *
-     * @var callable[]
-     */
-    protected $terminatingCallbacks = [];
+    
 
     /**
      * Determine if the application has booted.
