@@ -194,7 +194,6 @@ class Plugin extends Container implements PluginContract
     {
         foreach ([
             'plugin' => [self::class, \Pluguin\Contracts\Container\Container::class, \Pluguin\Contracts\Foundation\Plugin::class, \Psr\Container\ContainerInterface::class],
-            'config' => [\Illuminate\Config\Repository::class, \Illuminate\Contracts\Config\Repository::class],
             'db' => [\Illuminate\Database\DatabaseManager::class, \Illuminate\Database\ConnectionResolverInterface::class],
             'db.connection' => [\Illuminate\Database\Connection::class, \Illuminate\Database\ConnectionInterface::class],
             'db.schema' => [\Illuminate\Database\Schema\Builder::class],
@@ -281,15 +280,18 @@ class Plugin extends Container implements PluginContract
      */
     public function registerConfiguredProviders()
     {//@
-        $providers = Collection::make($this->make('config')->get('app.providers'))
-                        ->partition(function ($provider) {
-                            return str_starts_with($provider, 'Illuminate\\');
-                        });
 
-        $providers->splice(1, 0, [$this->make(PackageManifest::class)->providers()]);
+        $providers = ($this["config"]["plugin"] ?? [])["providers"] ?? [];
 
-        (new ProviderRepository($this, new Filesystem, $this->getCachedServicesPath()))
-                    ->load($providers->collapse()->toArray());
+        $eager = $providers["eager"] ?? [];
+
+        foreach ($eager as $provider) {
+            $this->register($provider);
+        }
+
+        $deferred = $providers["deferred"] ?? [];
+
+        $this-->addDeferredServices($deferred);
     }
 
     /**
@@ -491,7 +493,7 @@ class Plugin extends Container implements PluginContract
      */
     public function viewPath($path = '')
     {
-        $basePath = $this->config['view']['paths'][0];
+        $basePath = $this["config"]['view']['paths'][0];
 
         return rtrim($basePath, DIRECTORY_SEPARATOR).($path != '' ? DIRECTORY_SEPARATOR.$path : '');
     }
@@ -517,7 +519,7 @@ class Plugin extends Container implements PluginContract
      */
     public function hasDebugModeEnabled()
     {
-        return (bool) $this->config['plugin']['debug'];
+        return (bool) $this["config"]['plugin']['debug'];
     }
 
     /**
