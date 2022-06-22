@@ -103,13 +103,6 @@ class Plugin extends Container implements PluginContract
     protected $loadedProviders = [];
 
     /**
-     * The deferred services and their providers.
-     *
-     * @var array
-     */
-    protected $deferredServices = [];
-
-    /**
      * The plugin namespace.
      *
      * @var string
@@ -279,19 +272,27 @@ class Plugin extends Container implements PluginContract
      * @return void
      */
     public function registerConfiguredProviders()
-    {//@
+    {
 
-        $providers = ($this["config"]["plugin"] ?? [])["providers"] ?? [];
+        $providers = Collection::make($this["config"]["plugin"]["providers"])
+                        ->partition(function ($provider) {
+                            return str_starts_with($provider, 'Pluguin\\');
+                        });
 
-        $eager = $providers["eager"] ?? [];
+        $providers->splice(1, 0, [$this->make(PackageManifest::class)->providers()]);
 
-        foreach ($eager as $provider) {
-            $this->register($provider);
-        }
+        (new ProviderRepository($this, new Filesystem, $this->getCachedServicesPath()))
+                    ->load($providers->collapse()->toArray());
+    }
 
-        $deferred = $providers["deferred"] ?? [];
-
-        $this-->addDeferredServices($deferred);
+    /**
+     * Get the path to the cached services.php file.
+     *
+     * @return string
+     */
+    public function getCachedServicesPath()
+    {
+        return $this->bootstrapPath($default,'cache/services.php');
     }
 
     /**
@@ -531,48 +532,7 @@ class Plugin extends Container implements PluginContract
     {
         return static::VERSION;
     }
-
-    /**
-     * Resolve the given type from the container.
-     *
-     * @param  string  $abstract
-     * @param  array  $parameters
-     * @param  bool  $raiseEvents
-     * @return mixed
-     */
-    protected function resolve($abstract, $parameters = [], $raiseEvents = true)
-    {
-        $this->loadDeferredProviderIfNeeded($abstract = $this->getAlias($abstract));
-
-        return parent::resolve($abstract, $parameters, $raiseEvents);
-    }
-
     
-
-    /**
-     * Resolve the given type from the container.
-     *
-     * @param  string  $abstract
-     * @param  array  $parameters
-     * @return mixed
-     */
-    public function make($abstract, array $parameters = [])
-    {
-        $this->loadDeferredProviderIfNeeded($abstract = $this->getAlias($abstract));
-
-        return parent::make($abstract, $parameters);
-    }
-
-    /**
-     * Determine if the given abstract type has been bound.
-     *
-     * @param  string  $abstract
-     * @return bool
-     */
-    public function bound($abstract)
-    {
-        return $this->isDeferredService($abstract) || parent::bound($abstract);
-    }
 
     /**
      * 
@@ -639,8 +599,6 @@ class Plugin extends Container implements PluginContract
      */
     protected function registerBaseServiceProviders()
     {
-        // $this->register(new EventServiceProvider($this));
-        // $this->register(new LogServiceProvider($this));
         // $this->register(new RoutingServiceProvider($this));
     }
 
@@ -742,84 +700,7 @@ class Plugin extends Container implements PluginContract
 
         $this->loadedProviders[get_class($provider)] = true;
     }
-
-    /**
-     * Load and boot all of the remaining deferred providers.
-     *
-     * @return void
-     */
-    public function loadDeferredProviders()
-    {
-        // We will simply spin through each of the deferred providers and register each
-        // one and boot them if the application has booted. This should make each of
-        // the remaining services available to this application for immediate use.
-        foreach ($this->deferredServices as $service => $provider) {
-            $this->loadDeferredProvider($service);
-        }
-
-        $this->deferredServices = [];
-    }
-
-    /**
-     * Load the provider for a deferred service.
-     *
-     * @param  string  $service
-     * @return void
-     */
-    public function loadDeferredProvider($service)
-    {
-        if (! $this->isDeferredService($service)) {
-            return;
-        }
-
-        $provider = $this->deferredServices[$service];
-
-        // If the service provider has not already been loaded and registered we can
-        // register it with the application and remove the service from this list
-        // of deferred services, since it will already be loaded on subsequent.
-        if (! isset($this->loadedProviders[$provider])) {
-            $this->registerDeferredProvider($provider, $service);
-        }
-    }
-
-    /**
-     * Register a deferred provider and service.
-     *
-     * @param  string  $provider
-     * @param  string|null  $service
-     * @return void
-     */
-    public function registerDeferredProvider($provider, $service = null)
-    {
-        // Once the provider that provides the deferred service has been registered we
-        // will remove it from our local list of the deferred services with related
-        // providers so that this container does not try to resolve it out again.
-        if ($service) {
-            unset($this->deferredServices[$service]);
-        }
-
-        $this->register($instance = new $provider($this));
-
-        if (! $this->isBooted()) {
-            $this->booting(function () use ($instance) {
-                $this->bootProvider($instance);
-            });
-        }
-    }
-
-    /**
-     * Load the deferred provider if the given type is a deferred service and the instance has not been loaded.
-     *
-     * @param  string  $abstract
-     * @return void
-     */
-    protected function loadDeferredProviderIfNeeded($abstract)
-    {
-        if ($this->isDeferredService($abstract) && ! isset($this->instances[$abstract])) {
-            $this->loadDeferredProvider($abstract);
-        }
-    }
-
+    
     /**
      * Get the service providers that have been loaded.
      *
@@ -839,49 +720,6 @@ class Plugin extends Container implements PluginContract
     public function providerIsLoaded(string $provider)
     {
         return isset($this->loadedProviders[$provider]);
-    }
-
-    /**
-     * Get the application's deferred services.
-     *
-     * @return array
-     */
-    public function getDeferredServices()
-    {
-        return $this->deferredServices;
-    }
-
-    /**
-     * Set the application's deferred services.
-     *
-     * @param  array  $services
-     * @return void
-     */
-    public function setDeferredServices(array $services)
-    {
-        $this->deferredServices = $services;
-    }
-
-    /**
-     * Add an array of services to the application's deferred services.
-     *
-     * @param  array  $services
-     * @return void
-     */
-    public function addDeferredServices(array $services)
-    {
-        $this->deferredServices = array_merge($this->deferredServices, $services);
-    }
-
-    /**
-     * Determine if the given service is a deferred service.
-     *
-     * @param  string  $service
-     * @return bool
-     */
-    public function isDeferredService($service)
-    {
-        return isset($this->deferredServices[$service]);
     }
 
     /**
