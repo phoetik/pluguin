@@ -3,11 +3,9 @@
 namespace Pluguin\Foundation;
 
 use Closure;
-use Pluguin\Container\Container;
+use Illuminate\Container\Container;
 use Pluguin\Contracts\Foundation\Plugin as PluginContract;
-
-use Pluguin\Foundation\Plugin\Paths;
-use Pluguin\Foundation\Plugin\ServiceProvider;
+use Pluguin\Foundation\Support\ServiceProvider;
 
 class Plugin extends Container implements PluginContract
 {
@@ -273,26 +271,9 @@ class Plugin extends Container implements PluginContract
      */
     public function registerConfiguredProviders()
     {
-
-        $providers = Collection::make($this["config"]["plugin"]["providers"])
-                        ->partition(function ($provider) {
-                            return str_starts_with($provider, 'Pluguin\\');
-                        });
-
-        $providers->splice(1, 0, [$this->make(PackageManifest::class)->providers()]);
-
-        (new ProviderRepository($this, new Filesystem, $this->getCachedServicesPath()))
-                    ->load($providers->collapse()->toArray());
-    }
-
-    /**
-     * Get the path to the cached services.php file.
-     *
-     * @return string
-     */
-    public function getCachedServicesPath()
-    {
-        return $this->bootstrapPath($default,'cache/services.php');
+        foreach ($this["config"]->get("plugin.providers",[]) as $provider) {
+            $this->register($provider);
+        }
     }
 
     /**
@@ -319,7 +300,7 @@ class Plugin extends Container implements PluginContract
     {
         $this->instance('path', $this->path());
         $this->instance('path.base', $this->basePath());
-        $this->instance('path.config', $this->configPath());
+        $this->instance('path.config', $this->configFile());
         $this->instance('path.database', $this->databasePath());
         $this->instance('path.resources', $this->resourcePath());
         $this->instance('path.bootstrap', $this->bootstrapPath());
@@ -389,7 +370,7 @@ class Plugin extends Container implements PluginContract
      * @param  string  $path
      * @return string
      */
-    public function configPath()
+    public function configFile()
     {
         return $this->basePath.DIRECTORY_SEPARATOR.'config.php';
     }
@@ -598,7 +579,7 @@ class Plugin extends Container implements PluginContract
      * @return void
      */
     protected function registerBaseServiceProviders()
-    {
+    {   //@
         // $this->register(new RoutingServiceProvider($this));
     }
 
