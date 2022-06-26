@@ -10,16 +10,16 @@ class LoadConfiguration
     /**
      * Bootstrap the given plugin.
      *
-     * @param  \Illuminate\Contracts\Foundation\Application  $app
+     * @param  \Pluguin\Contracts\Foundation\Plugin  $plugin
      * @return void
      */
-    public function bootstrap($app)
+    public function bootstrap($plugin)
     {
         $items = [];
-        if (file_exists($config = $app->configFile())) {
+        if (file_exists($config = $plugin->configFile())) {
             $items = require $config;
         }
 
-        $app->instance('config', $config = new Repository($items));
+        $plugin->instance('config', $config = new Repository($items));
     }
 }

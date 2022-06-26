@@ -16,8 +16,8 @@
     "require": {
         "php": "^7.4",
         "illuminate/container": "^8.83",
+        "illuminate/config": "^8.83",
         "illuminate/database": "^8.83",
-        "illuminate/filesystem": "^8.83",
         "illuminate/support": "^8.83"
     }
 }
