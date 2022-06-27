@@ -2,139 +2,134 @@
 
 namespace Illuminate\Foundation;
 
-use Closure;
 use Illuminate\Container\Container;
-
-use Pluguin\Contracts\Foundation\Plugin as PluginContract;
-
-
-use Illuminate\Contracts\Foundation\CachesConfiguration;
-// use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Support\Arr;
-// use Illuminate\Support\Collection;
+// use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Support\ServiceProvider;
+// use Illuminate\Support\Collection;
+use Pluguin\Contracts\Foundation\Plugin as PluginContract;
 // use Illuminate\Support\Str;
 use RuntimeException;
+
 // use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 // use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 // use Symfony\Component\HttpKernel\Exception\HttpException;
 // use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 // use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-class Plugin extends Container implements PluginContract // HttpKernelInterface
-{
-    /**
-     * The Pluguin framework version.
-     *
-     * @var string
-     */
+class Plugin extends Container implements PluginContract
+{ // HttpKernelInterface {
+/**
+ * The Pluguin framework version.
+ *
+ * @var string
+ */
     const VERSION = '9.18.0';
 
-    /**
-     * The base path for the plugin.
-     *
-     * @var string
-     */
+/**
+ * The base path for the plugin.
+ *
+ * @var string
+ */
     protected $basePath;
 
-    /**
-     * Indicates if the plugin has been bootstrapped before.
-     *
-     * @var bool
-     */
+/**
+ * Indicates if the plugin has been bootstrapped before.
+ *
+ * @var bool
+ */
     protected $hasBeenBootstrapped = false;
 
-    /**
-     * Indicates if the plugin has "booted".
-     *
-     * @var bool
-     */
+/**
+ * Indicates if the plugin has "booted".
+ *
+ * @var bool
+ */
     protected $booted = false;
 
-    /**
-     * The array of booting callbacks.
-     *
-     * @var callable[]
-     */
+/**
+ * The array of booting callbacks.
+ *
+ * @var callable[]
+ */
     protected $bootingCallbacks = [];
 
-    /**
-     * The array of booted callbacks.
-     *
-     * @var callable[]
-     */
+/**
+ * The array of booted callbacks.
+ *
+ * @var callable[]
+ */
     protected $bootedCallbacks = [];
 
-    /**
-     * The array of terminating callbacks.
-     *
-     * @var callable[]
-     */
+/**
+ * The array of terminating callbacks.
+ *
+ * @var callable[]
+ */
     protected $terminatingCallbacks = [];
 
-    /**
-     * All of the registered service providers.
-     *
-     * @var \Illuminate\Support\ServiceProvider[]
-     */
+/**
+ * All of the registered service providers.
+ *
+ * @var \Illuminate\Support\ServiceProvider[]
+ */
     protected $serviceProviders = [];
 
-    /**
-     * The names of the loaded service providers.
-     *
-     * @var array
-     */
+/**
+ * The names of the loaded service providers.
+ *
+ * @var array
+ */
     protected $loadedProviders = [];
 
-    /**
-     * The deferred services and their providers.
-     *
-     * @var array
-     */
+/**
+ * The deferred services and their providers.
+ *
+ * @var array
+ */
     protected $deferredServices = [];
 
-    /**
-     * The custom plugin path defined by the developer.
-     *
-     * @var string
-     */
+/**
+ * The custom plugin path defined by the developer.
+ *
+ * @var string
+ */
     protected $pluginPath;
 
-    /**
-     * The custom database path defined by the developer.
-     *
-     * @var string
-     */
+/**
+ * The custom database path defined by the developer.
+ *
+ * @var string
+ */
     protected $databasePath;
 
-    /**
-     * The custom language file path defined by the developer.
-     *
-     * @var string
-     */
+/**
+ * The custom language file path defined by the developer.
+ *
+ * @var string
+ */
     protected $langPath;
 
-    /**
-     * The custom assets path defined by the developer.
-     *
-     * @var string
-     */
+/**
+ * The custom assets path defined by the developer.
+ *
+ * @var string
+ */
     protected $assetsPath;
 
-
-    /**
-     * The plugin namespace.
-     *
-     * @var string
-     */
+/**
+ * The plugin namespace.
+ *
+ * @var string
+ */
     protected $namespace;
 
-    /**
-     * Create a new Pluguin plugin instance.
-     *
-     * @param  string|null  $basePath
-     * @return void
-     */
+/**
+ * Create a new Pluguin plugin instance.
+ *
+ * @param  string|null  $basePath
+ * @return void
+ */
     public function __construct($basePath = null)
     {
         if ($basePath) {
@@ -146,21 +141,21 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $this->registerCoreContainerAliases();
     }
 
-    /**
-     * Get the version number of the application.
-     *
-     * @return string
-     */
+/**
+ * Get the version number of the application.
+ *
+ * @return string
+ */
     public function version()
     {
         return static::VERSION;
     }
 
-    /**
-     * Register the basic bindings into the container.
-     *
-     * @return void
-     */
+/**
+ * Register the basic bindings into the container.
+ *
+ * @return void
+ */
     protected function registerBaseBindings()
     {
         static::setInstance($this);
@@ -176,11 +171,11 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         // });
     }
 
-    /**
-     * Register all of the base service providers.
-     *
-     * @return void
-     */
+/**
+ * Register all of the base service providers.
+ *
+ * @return void
+ */
     protected function registerBaseServiceProviders()
     {
         // $this->register(new EventServiceProvider($this));
@@ -188,12 +183,12 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         // $this->register(new RoutingServiceProvider($this));
     }
 
-    /**
-     * Run the given array of bootstrap classes.
-     *
-     * @param  string[]  $bootstrappers
-     * @return void
-     */
+/**
+ * Run the given array of bootstrap classes.
+ *
+ * @param  string[]  $bootstrappers
+ * @return void
+ */
     public function bootstrapWith(array $bootstrappers)
     {
         $this->hasBeenBootstrapped = true;
@@ -203,22 +198,22 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         }
     }
 
-    /**
-     * Determine if the application has been bootstrapped before.
-     *
-     * @return bool
-     */
+/**
+ * Determine if the application has been bootstrapped before.
+ *
+ * @return bool
+ */
     public function hasBeenBootstrapped()
     {
         return $this->hasBeenBootstrapped;
     }
 
-    /**
-     * Set the base path for the application.
-     *
-     * @param  string  $basePath
-     * @return $this
-     */
+/**
+ * Set the base path for the application.
+ *
+ * @param  string  $basePath
+ * @return $this
+ */
     public function setBasePath($basePath)
     {
         $this->basePath = rtrim($basePath, '\/');
@@ -228,11 +223,11 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $this;
     }
 
-    /**
-     * Bind all of the application paths in the container.
-     *
-     * @return void
-     */
+/**
+ * Bind all of the application paths in the container.
+ *
+ * @return void
+ */
     protected function bindPathsInContainer()
     {
         $this->instance('path', $this->path());
@@ -252,25 +247,25 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         })());
     }
 
-    /**
-     * Get the path to the plugin "plugin" directory.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the plugin "plugin" directory.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function path($path = '')
     {
-        $pluginPath = $this->pluginPath ?: $this->basePath.DIRECTORY_SEPARATOR.'plugin';
+        $pluginPath = $this->pluginPath ?: $this->basePath . DIRECTORY_SEPARATOR . 'plugin';
 
-        return $pluginPath.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return $pluginPath . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Set the plugin directory.
-     *
-     * @param  string  $path
-     * @return $this
-     */
+/**
+ * Set the plugin directory.
+ *
+ * @param  string  $path
+ * @return $this
+ */
     public function usePluginPath($path)
     {
         $this->pluginPath = $path;
@@ -280,56 +275,56 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $this;
     }
 
-    /**
-     * Get the base path of the plugin.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the base path of the plugin.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function basePath($path = '')
     {
-        return $this->basePath.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return $this->basePath . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Get the path to the bootstrap directory.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the bootstrap directory.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function bootstrapPath($path = '')
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'bootstrap'.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return $this->basePath . DIRECTORY_SEPARATOR . 'bootstrap' . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Get the path to the plugin configuration file.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the plugin configuration file.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function configFile()
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'config.php';
+        return $this->basePath . DIRECTORY_SEPARATOR . 'config.php';
     }
 
-    /**
-     * Get the path to the database directory.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the database directory.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function databasePath($path = '')
     {
-        return ($this->databasePath ?: $this->basePath.DIRECTORY_SEPARATOR.'database').($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return ($this->databasePath ?: $this->basePath . DIRECTORY_SEPARATOR . 'database') . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Set the database directory.
-     *
-     * @param  string  $path
-     * @return $this
-     */
+/**
+ * Set the database directory.
+ *
+ * @param  string  $path
+ * @return $this
+ */
     public function useDatabasePath($path)
     {
         $this->databasePath = $path;
@@ -339,23 +334,23 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $this;
     }
 
-    /**
-     * Get the path to the language files.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the language files.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function langPath($path = '')
     {
-        return $this->langPath.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return $this->langPath . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Set the language file directory.
-     *
-     * @param  string  $path
-     * @return $this
-     */
+/**
+ * Set the language file directory.
+ *
+ * @param  string  $path
+ * @return $this
+ */
     public function useLangPath($path)
     {
         $this->langPath = $path;
@@ -365,112 +360,123 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $this;
     }
 
-    /**
-     * Get the path to the assets directory.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the assets directory.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function assetsPath($path = '')
     {
-        return ($this->assetsPath ?: $this->basePath.DIRECTORY_SEPARATOR.'assets')
-                            .($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return ($this->assetsPath ?: $this->basePath . DIRECTORY_SEPARATOR . 'assets')
+            . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Get the path to the resources directory.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the resources directory.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function resourcePath($path = '')
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'resources'.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return $this->basePath . DIRECTORY_SEPARATOR . 'resources' . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Get the path to the views directory.
-     *
-     * This method returns the first configured path in the array of view paths.
-     *
-     * @param  string  $path
-     * @return string
-     */
+/**
+ * Get the path to the views directory.
+ *
+ * This method returns the first configured path in the array of view paths.
+ *
+ * @param  string  $path
+ * @return string
+ */
     public function viewPath($path = '')
     {
         $basePath = $this['config']->get('view.paths')[0];
 
-        return rtrim($basePath, DIRECTORY_SEPARATOR).($path != '' ? DIRECTORY_SEPARATOR.$path : '');
+        return rtrim($basePath, DIRECTORY_SEPARATOR) . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
 
-    /**
-     * Get or check the current plugin environment.
-     *
-     * @param  string|array  $environments
-     * @return string|bool
-     */
+/**
+ * Get or check the current plugin environment.
+ *
+ * @param  string|array  $environments
+ * @return string|bool
+ */
     public function environment()
     {
         return $this['config']->get('plugin.env');
     }
 
-    /**
-     * Determine if the plugin is in the local environment.
-     *
-     * @return bool
-     */
+/**
+ * Determine if the plugin is in the local environment.
+ *
+ * @return bool
+ */
     public function isLocal()
     {
         return $this['config']->get('plugin.env') === 'local';
     }
 
-    /**
-     * Determine if the plugin is in the production environment.
-     *
-     * @return bool
-     */
+/**
+ * Determine if the plugin is in the production environment.
+ *
+ * @return bool
+ */
     public function isProduction()
     {
         return $this['config']->get('plugin.env') === 'production';
     }
 
-    /**
-     * Determine if the plugin is running with debug mode enabled.
-     *
-     * @return bool
-     */
+/**
+ * Determine if the plugin is running with debug mode enabled.
+ *
+ * @return bool
+ */
     public function hasDebugModeEnabled()
     {
         return (bool) $this['config']->get('plugin.debug');
     }
 
-    /**
-     * Register all of the configured providers.
-     *
-     * @return void
-     */
+/**
+ * Register all of the configured providers.
+ *
+ * @return void
+ */
     public function registerConfiguredProviders()
     {
         $providers = $this->make('config')->get('plugin.providers');
 
-        foreach($providers["eager"] ?? [] as $provider)
-        {
+        foreach ($providers["eager"] ?? [] as $provider) {
             $this->register($provider);
         }
 
-        $this->addDeferredServices($providers["deferred"] ?? []);
+        $deferred = [];
+
+        foreach ($providers["deferred"] ?? [] as $provider => $services) {
+            if (is_array($services)) {
+                foreach ($services as $service) {
+                    $deferred[$service] = $provider;
+                }
+            } else {
+                $deferred[$services] = $provider;
+            }
+        }
+
+        $this->addDeferredServices($deferred);
     }
 
-    /**
-     * Register a service provider with the plugin.
-     *
-     * @param  \Illuminate\Support\ServiceProvider|string  $provider
-     * @param  bool  $force
-     * @return \Illuminate\Support\ServiceProvider
-     */
+/**
+ * Register a service provider with the plugin.
+ *
+ * @param  \Illuminate\Support\ServiceProvider|string  $provider
+ * @param  bool  $force
+ * @return \Illuminate\Support\ServiceProvider
+ */
     public function register($provider, $force = false)
     {
-        if (($registered = $this->getProvider($provider)) && ! $force) {
+        if (($registered = $this->getProvider($provider)) && !$force) {
             return $registered;
         }
 
@@ -510,23 +516,23 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $provider;
     }
 
-    /**
-     * Get the registered service provider instance if it exists.
-     *
-     * @param  \Illuminate\Support\ServiceProvider|string  $provider
-     * @return \Illuminate\Support\ServiceProvider|null
-     */
+/**
+ * Get the registered service provider instance if it exists.
+ *
+ * @param  \Illuminate\Support\ServiceProvider|string  $provider
+ * @return \Illuminate\Support\ServiceProvider|null
+ */
     public function getProvider($provider)
     {
         return array_values($this->getProviders($provider))[0] ?? null;
     }
 
-    /**
-     * Get the registered service provider instances if any exist.
-     *
-     * @param  \Illuminate\Support\ServiceProvider|string  $provider
-     * @return array
-     */
+/**
+ * Get the registered service provider instances if any exist.
+ *
+ * @param  \Illuminate\Support\ServiceProvider|string  $provider
+ * @return array
+ */
     public function getProviders($provider)
     {
         $name = is_string($provider) ? $provider : get_class($provider);
@@ -536,23 +542,23 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         });
     }
 
-    /**
-     * Resolve a service provider instance from the class name.
-     *
-     * @param  string  $provider
-     * @return \Illuminate\Support\ServiceProvider
-     */
+/**
+ * Resolve a service provider instance from the class name.
+ *
+ * @param  string  $provider
+ * @return \Illuminate\Support\ServiceProvider
+ */
     public function resolveProvider($provider)
     {
         return new $provider($this);
     }
 
-    /**
-     * Mark the given provider as registered.
-     *
-     * @param  \Illuminate\Support\ServiceProvider  $provider
-     * @return void
-     */
+/**
+ * Mark the given provider as registered.
+ *
+ * @param  \Illuminate\Support\ServiceProvider  $provider
+ * @return void
+ */
     protected function markAsRegistered($provider)
     {
         $this->serviceProviders[] = $provider;
@@ -560,11 +566,11 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $this->loadedProviders[get_class($provider)] = true;
     }
 
-    /**
-     * Load and boot all of the remaining deferred providers.
-     *
-     * @return void
-     */
+/**
+ * Load and boot all of the remaining deferred providers.
+ *
+ * @return void
+ */
     public function loadDeferredProviders()
     {
         // We will simply spin through each of the deferred providers and register each
@@ -577,15 +583,15 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $this->deferredServices = [];
     }
 
-    /**
-     * Load the provider for a deferred service.
-     *
-     * @param  string  $service
-     * @return void
-     */
+/**
+ * Load the provider for a deferred service.
+ *
+ * @param  string  $service
+ * @return void
+ */
     public function loadDeferredProvider($service)
     {
-        if (! $this->isDeferredService($service)) {
+        if (!$this->isDeferredService($service)) {
             return;
         }
 
@@ -594,18 +600,18 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         // If the service provider has not already been loaded and registered we can
         // register it with the application and remove the service from this list
         // of deferred services, since it will already be loaded on subsequent.
-        if (! isset($this->loadedProviders[$provider])) {
+        if (!isset($this->loadedProviders[$provider])) {
             $this->registerDeferredProvider($provider, $service);
         }
     }
 
-    /**
-     * Register a deferred provider and service.
-     *
-     * @param  string  $provider
-     * @param  string|null  $service
-     * @return void
-     */
+/**
+ * Register a deferred provider and service.
+ *
+ * @param  string  $provider
+ * @param  string|null  $service
+ * @return void
+ */
     public function registerDeferredProvider($provider, $service = null)
     {
         // Once the provider that provides the deferred service has been registered we
@@ -617,35 +623,35 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
 
         $this->register($instance = new $provider($this));
 
-        if (! $this->isBooted()) {
+        if (!$this->isBooted()) {
             $this->booting(function () use ($instance) {
                 $this->bootProvider($instance);
             });
         }
     }
 
-    /**
-     * Resolve the given type from the container.
-     *
-     * @param  string  $abstract
-     * @param  array  $parameters
-     * @return mixed
-     */
+/**
+ * Resolve the given type from the container.
+ *
+ * @param  string  $abstract
+ * @param  array  $parameters
+ * @return mixed
+ */
     public function make($abstract, array $parameters = [])
     {
-        $this->loadDeferredProviderIfNeeded($abstract = $this->getAlias($abstract));
+        $this->getProviders($abstract = $this->getAlias($abstract));
 
         return parent::make($abstract, $parameters);
     }
 
-    /**
-     * Resolve the given type from the container.
-     *
-     * @param  string  $abstract
-     * @param  array  $parameters
-     * @param  bool  $raiseEvents
-     * @return mixed
-     */
+/**
+ * Resolve the given type from the container.
+ *
+ * @param  string  $abstract
+ * @param  array  $parameters
+ * @param  bool  $raiseEvents
+ * @return mixed
+ */
     protected function resolve($abstract, $parameters = [], $raiseEvents = true)
     {
         $this->loadDeferredProviderIfNeeded($abstract = $this->getAlias($abstract));
@@ -653,45 +659,45 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return parent::resolve($abstract, $parameters, $raiseEvents);
     }
 
-    /**
-     * Load the deferred provider if the given type is a deferred service and the instance has not been loaded.
-     *
-     * @param  string  $abstract
-     * @return void
-     */
+/**
+ * Load the deferred provider if the given type is a deferred service and the instance has not been loaded.
+ *
+ * @param  string  $abstract
+ * @return void
+ */
     protected function loadDeferredProviderIfNeeded($abstract)
     {
-        if ($this->isDeferredService($abstract) && ! isset($this->instances[$abstract])) {
+        if ($this->isDeferredService($abstract) && !isset($this->instances[$abstract])) {
             $this->loadDeferredProvider($abstract);
         }
     }
 
-    /**
-     * Determine if the given abstract type has been bound.
-     *
-     * @param  string  $abstract
-     * @return bool
-     */
+/**
+ * Determine if the given abstract type has been bound.
+ *
+ * @param  string  $abstract
+ * @return bool
+ */
     public function bound($abstract)
     {
         return $this->isDeferredService($abstract) || parent::bound($abstract);
     }
 
-    /**
-     * Determine if the application has booted.
-     *
-     * @return bool
-     */
+/**
+ * Determine if the application has booted.
+ *
+ * @return bool
+ */
     public function isBooted()
     {
         return $this->booted;
     }
 
-    /**
-     * Boot the application's service providers.
-     *
-     * @return void
-     */
+/**
+ * Boot the application's service providers.
+ *
+ * @return void
+ */
     public function boot()
     {
         if ($this->isBooted()) {
@@ -712,12 +718,12 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $this->fireAppCallbacks($this->bootedCallbacks);
     }
 
-    /**
-     * Boot the given service provider.
-     *
-     * @param  \Illuminate\Support\ServiceProvider  $provider
-     * @return void
-     */
+/**
+ * Boot the given service provider.
+ *
+ * @param  \Illuminate\Support\ServiceProvider  $provider
+ * @return void
+ */
     protected function bootProvider(ServiceProvider $provider)
     {
         $provider->callBootingCallbacks();
@@ -729,23 +735,23 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $provider->callBootedCallbacks();
     }
 
-    /**
-     * Register a new boot listener.
-     *
-     * @param  callable  $callback
-     * @return void
-     */
+/**
+ * Register a new boot listener.
+ *
+ * @param  callable  $callback
+ * @return void
+ */
     public function booting($callback)
     {
         $this->bootingCallbacks[] = $callback;
     }
 
-    /**
-     * Register a new "booted" listener.
-     *
-     * @param  callable  $callback
-     * @return void
-     */
+/**
+ * Register a new "booted" listener.
+ *
+ * @param  callable  $callback
+ * @return void
+ */
     public function booted($callback)
     {
         $this->bootedCallbacks[] = $callback;
@@ -755,13 +761,13 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         }
     }
 
-    /**
-     * Call the booting callbacks for the application.
-     *
-     * @param  callable[]  $callbacks
-     * @return void
-     */
-    protected function fireAppCallbacks(array &$callbacks)
+/**
+ * Call the booting callbacks for the application.
+ *
+ * @param  callable[]  $callbacks
+ * @return void
+ */
+    protected function fireAppCallbacks(array&$callbacks)
     {
         $index = 0;
 
@@ -772,53 +778,53 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
-    //@ public function handle(SymfonyRequest $request, int $type = self::MAIN_REQUEST, bool $catch = true): SymfonyResponse
-    // {
-    //     return $this[HttpKernelContract::class]->handle(Request::createFromBase($request));
-    // }
+/**
+ * {@inheritdoc}
+ *
+ * @return \Symfony\Component\HttpFoundation\Response
+ */
+//@ public function handle(SymfonyRequest $request, int $type = self::MAIN_REQUEST, bool $catch = true): SymfonyResponse
+// {
+//     return $this[HttpKernelContract::class]->handle(Request::createFromBase($request));
+// }
 
-    /**
-     * Determine if middleware has been disabled for the application.
-     *
-     * @return bool
-     */
+/**
+ * Determine if middleware has been disabled for the application.
+ *
+ * @return bool
+ */
     public function shouldSkipMiddleware()
     {
         return $this->bound('middleware.disable') &&
-               $this->make('middleware.disable') === true;
+        $this->make('middleware.disable') === true;
     }
 
-    /**
-     * Throw an HttpException with the given data.
-     *
-     * @param  int  $code
-     * @param  string  $message
-     * @param  array  $headers
-     * @return never
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
-     */
-    // public function abort($code, $message = '', array $headers = [])
-    //@ {
-    //     if ($code == 404) {
-    //         throw new NotFoundHttpException($message);
-    //     }
+/**
+ * Throw an HttpException with the given data.
+ *
+ * @param  int  $code
+ * @param  string  $message
+ * @param  array  $headers
+ * @return never
+ *
+ * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+ * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+ */
+// public function abort($code, $message = '', array $headers = [])
+//@ {
+//     if ($code == 404) {
+//         throw new NotFoundHttpException($message);
+//     }
 
-    //     throw new HttpException($code, $message, null, $headers);
-    // }
+//     throw new HttpException($code, $message, null, $headers);
+// }
 
-    /**
-     * Register a terminating callback with the plugin.
-     *
-     * @param  callable|string  $callback
-     * @return $this
-     */
+/**
+ * Register a terminating callback with the plugin.
+ *
+ * @param  callable|string  $callback
+ * @return $this
+ */
     public function terminating($callback)
     {
         $this->terminatingCallbacks[] = $callback;
@@ -826,11 +832,11 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         return $this;
     }
 
-    /**
-     * Terminate the plugin.
-     *
-     * @return void
-     */
+/**
+ * Terminate the plugin.
+ *
+ * @return void
+ */
     public function terminate()
     {
         $index = 0;
@@ -842,111 +848,111 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         }
     }
 
-    /**
-     * Get the service providers that have been loaded.
-     *
-     * @return array
-     */
+/**
+ * Get the service providers that have been loaded.
+ *
+ * @return array
+ */
     public function getLoadedProviders()
     {
         return $this->loadedProviders;
     }
 
-    /**
-     * Determine if the given service provider is loaded.
-     *
-     * @param  string  $provider
-     * @return bool
-     */
+/**
+ * Determine if the given service provider is loaded.
+ *
+ * @param  string  $provider
+ * @return bool
+ */
     public function providerIsLoaded(string $provider)
     {
         return isset($this->loadedProviders[$provider]);
     }
 
-    /**
-     * Get the plugin's deferred services.
-     *
-     * @return array
-     */
+/**
+ * Get the plugin's deferred services.
+ *
+ * @return array
+ */
     public function getDeferredServices()
     {
         return $this->deferredServices;
     }
 
-    /**
-     * Set the plugin's deferred services.
-     *
-     * @param  array  $services
-     * @return void
-     */
+/**
+ * Set the plugin's deferred services.
+ *
+ * @param  array  $services
+ * @return void
+ */
     public function setDeferredServices(array $services)
     {
         $this->deferredServices = $services;
     }
 
-    /**
-     * Add an array of services to the plugin's deferred services.
-     *
-     * @param  array  $services
-     * @return void
-     */
+/**
+ * Add an array of services to the plugin's deferred services.
+ *
+ * @param  array  $services
+ * @return void
+ */
     public function addDeferredServices(array $services)
     {
         $this->deferredServices = array_merge($this->deferredServices, $services);
     }
 
-    /**
-     * Determine if the given service is a deferred service.
-     *
-     * @param  string  $service
-     * @return bool
-     */
+/**
+ * Determine if the given service is a deferred service.
+ *
+ * @param  string  $service
+ * @return bool
+ */
     public function isDeferredService($service)
     {
         return isset($this->deferredServices[$service]);
     }
 
-    /**
-     * Get the current plugin locale.
-     *
-     * @return string
-     */
+/**
+ * Get the current plugin locale.
+ *
+ * @return string
+ */
     public function getLocale()
     {
         return \get_user_locale();
     }
 
-    /**
-     * Get the current application locale.
-     *
-     * @return string
-     */
+/**
+ * Get the current application locale.
+ *
+ * @return string
+ */
     public function currentLocale()
     {
         return $this->getLocale();
     }
 
-    /**
-     * Determine if the plugin locale is the given locale.
-     *
-     * @param  string  $locale
-     * @return bool
-     */
+/**
+ * Determine if the plugin locale is the given locale.
+ *
+ * @param  string  $locale
+ * @return bool
+ */
     public function isLocale($locale)
     {
         return $this->getLocale() == $locale;
     }
 
-    /**
-     * Register the core class aliases in the container.
-     *
-     * @return void
-     */
+/**
+ * Register the core class aliases in the container.
+ *
+ * @return void
+ */
     public function registerCoreContainerAliases()
     {
         foreach ([
             'plugin' => [self::class, \Illuminate\Contracts\Container\Container::class, \Pluguin\Contracts\Foundation\Plugin::class, \Psr\Container\ContainerInterface::class],
-            
+
             'config' => [\Illuminate\Config\Repository::class, \Illuminate\Contracts\Config\Repository::class],
             'db' => [\Illuminate\Database\DatabaseManager::class, \Illuminate\Database\ConnectionResolverInterface::class],
             'db.connection' => [\Illuminate\Database\Connection::class, \Illuminate\Database\ConnectionInterface::class],
@@ -960,11 +966,11 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         }
     }
 
-    /**
-     * Flush the container of all bindings and resolved instances.
-     *
-     * @return void
-     */
+/**
+ * Flush the container of all bindings and resolved instances.
+ *
+ * @return void
+ */
     public function flush()
     {
         parent::flush();
@@ -985,16 +991,16 @@ class Plugin extends Container implements PluginContract // HttpKernelInterface
         $this->globalAfterResolvingCallbacks = [];
     }
 
-    /**
-     * Get the plugin namespace.
-     *
-     * @return string
-     *
-     * @throws \RuntimeException
-     */
+/**
+ * Get the plugin namespace.
+ *
+ * @return string
+ *
+ * @throws \RuntimeException
+ */
     public function getNamespace()
     {
-        if (! is_null($this->namespace)) {
+        if (!is_null($this->namespace)) {
             return $this->namespace;
         }
 
