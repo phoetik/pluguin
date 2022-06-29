@@ -3,14 +3,14 @@
 /**
  * Pluguin
  *
- * @package     Ravand Admin Panel
+ * @package     Pluguin
  * @author      sina-radmanesh
  * @copyright   2022 RavandSoft
  * @license     GPL-2.0+
  *
  * @wordpress-plugin
- * Plugin Name: Ravand Admin Panel
- * Plugin URI: https://ravandsoft.com/admin-panel
+ * Plugin Name: Pluguin
+ * Plugin URI: https://webbax.dev/pluguin
  * Description: ...
  * Version:     0.0.1
  * Requires PHP: 7.4
@@ -22,20 +22,23 @@
  * Domain Path: /resources/lang
  */
 
-if (defined("PLUGUIN") || class_exists(\Pluguin\Pluguin::class)) {
+use \Pluguin\Pluguin;
+
+if (defined("PLUGUIN") || class_exists(Pluguin::class)) {
     return;
 }
 
+return;
 require __DIR__ . "/vendor/autoload.php";
 
 define("PLUGUIN", true);
 
-use \Pluguin\Pluguin;
+Pluguin::init();
 
-add_action("plugins_loaded", function () {
+function pluguin()
+{
+    return Pluguin::getInstance();
+}
 
-    $pluguin = new Pluguin;
 
-    do_action("pluguin", $pluguin);
-
-});
+// pluguin()->database->migrator()->run([__DIR__."/migrations/CreateLosersTable.php"]);
