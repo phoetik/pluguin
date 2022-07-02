@@ -8,6 +8,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 // use Illuminate\Support\Collection;
 use Pluguin\Contracts\Foundation\Plugin as PluginContract;
+use Pluguin\Pluguin;
 // use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -163,6 +164,8 @@ class Plugin extends Container implements PluginContract
         $this->instance('plugin', $this);
 
         $this->instance(Container::class, $this);
+
+        Pluguin::inject($this);
 
         // $this->singleton(PackageManifest::class, function () {
         //     return new PackageManifest(
