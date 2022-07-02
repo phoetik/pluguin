@@ -1,0 +1,3 @@
+<?php
+
+namespace Pluguin\Database;
