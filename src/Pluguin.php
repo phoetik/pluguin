@@ -2,19 +2,27 @@
 
 namespace Pluguin;
 
-use Pluguin\Events\Dispatcher;
-use Pluguin\Contracts\Plugin;
-use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Container\Container;
+use Illuminate\Database\Connectors\ConnectionFactory;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Fluent;
+use Pluguin\Contracts\Plugin;
+use Pluguin\Database\MigrationServiceProvider;
+use Pluguin\Events\Dispatcher;
 
 final class Pluguin
 {
-    private static $instance;
-
     public $container;
+
+    private $bootstrappers = [
+        \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
+        \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
+        \Pluguin\Foundation\Bootstrap\BootProviders::class,
+    ];
+
+    private static $instance;
 
     private function __construct()
     {
@@ -32,6 +40,11 @@ final class Pluguin
     private function setupContainer()
     {
         $this->container = new Container();
+    }
+
+    public function getContainer()
+    {
+        return $this->container;
     }
 
     private function setupConfiguration()
@@ -57,7 +70,7 @@ final class Pluguin
                 'charset' => 'utf8',
                 'collation' => empty(DB_COLLATE) ? 'utf8_unicode_ci' : DB_COLLATE,
                 'prefix' => $this->getWordpressTablePrefix(),
-            ]
+            ],
         ];
     }
 
@@ -75,6 +88,8 @@ final class Pluguin
 
         $this->registerEventsService();
 
+        $this->registerFilesystemService();
+
         $this->registerDatabaseServices();
     }
 
@@ -82,6 +97,13 @@ final class Pluguin
     {
         $this->container->singleton('events', function ($container) {
             return new Dispatcher($container);
+        });
+    }
+
+    private function registerFilesystemService()
+    {
+        $this->container->singleton('files', function () {
+            return new Filesystem;
         });
     }
 
@@ -113,7 +135,7 @@ final class Pluguin
     private function registerAction()
     {
         \add_action("plugins_loaded", function () {
-            \do_action("pluguin");
+            \do_action("pluguin", $this);
         });
     }
 
@@ -124,15 +146,25 @@ final class Pluguin
         }
     }
 
-    public static function inject(Plugin $plugin)
+    public function register(Plugin $plugin)
+    {
+        $plugin->instance('events', $this->container["events"]);
+        $plugin->instance('db', $this->container["db"]);
+        $plugin->addDeferredServices([
+            MigrationServiceProvider::class,
+        ]);
+
+        if ($plugin->hasBootstrappers()) {
+            $plugin->bootstrapWith($plugin->getBootstrappers());
+        } else {
+            $plugin->bootstrapWith($this->bootstrappers);
+        }
+    }
+
+    public static function getInstance()
     {
         static::init();
 
-        $container = static::$instance->container;
-
-        $plugin->instance('events', $container["events"]);
-        $plugin->instance('db', $container["db"]);
+        return static::$instance;
     }
-
-    
 }
