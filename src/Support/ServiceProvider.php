@@ -15,7 +15,7 @@ abstract class ServiceProvider
     /**
      * The application instance.
      *
-     * @var \Illuminate\Contracts\Foundation\Application
+     * @var \Pluguin\Contracts\Foundation\Plugin
      */
     protected $plugin;
 
@@ -50,7 +50,7 @@ abstract class ServiceProvider
     /**
      * Create a new service provider instance.
      *
-     * @param  \Illuminate\Contracts\Foundation\Application  $app
+     * @param  \Pluguin\Contracts\Foundation\Plugin $plugin
      * @return void
      */
     public function __construct($plugin)
@@ -59,7 +59,7 @@ abstract class ServiceProvider
     }
 
     /**
-     * Register any plugin services.
+     * Register any application services.
      *
      * @return void
      */
@@ -124,40 +124,20 @@ abstract class ServiceProvider
 
     /**
      * Merge the given configuration with the existing configuration.
-     * this doesn't merge or replace first level key value pairs 
      *
-     * @param  array  $config
-     * @param  bool  $overwrite
+     * @param  string  $path
+     * @param  string  $key
      * @return void
      */
-    protected function mergeConfig(array $new, $overwrite = false)
+    protected function mergeConfigFrom($path, $key)
     {
-        $config = $this->plugin->make('config');
+        if (! ($this->plugin instanceof CachesConfiguration && $this->plugin->configurationIsCached())) {
+            $config = $this->plugin->make('config');
 
-        $items = $config->getItems();
-
-        foreach($new as $key => $value)
-        {   
-            if(!isset($items[$key]))
-            {
-                $items[$key] = $value;
-            }
-            else
-            {
-                if(is_array($value))
-                {
-                    $items[$key] = $this->mergeItemsArray($items[$key], $value, $overwrite);
-                }
-                elseif($overwrite)
-                {
-                    $items[$key] = $value;
-                }
-            }
+            $config->set($key, array_merge(
+                require $path, $config->get($key, [])
+            ));
         }
-
-        $config->set($key, array_merge(
-            require $path, $config->get($key, [])
-        ));
     }
 
     /**
@@ -166,12 +146,12 @@ abstract class ServiceProvider
      * @param  string  $path
      * @return void
      */
-    protected function loadRoutesFrom($path)
-    {
-        if (! ($this->app instanceof CachesRoutes && $this->app->routesAreCached())) {
-            require $path;
-        }
-    }
+    // protected function loadRoutesFrom($path)
+    // {
+    //     if (! ($this->app instanceof CachesRoutes && $this->app->routesAreCached())) {
+    //         require $path;
+    //     }
+    // }
 
     /**
      * Register a view file namespace.
@@ -180,21 +160,21 @@ abstract class ServiceProvider
      * @param  string  $namespace
      * @return void
      */
-    protected function loadViewsFrom($path, $namespace)
-    {
-        $this->callAfterResolving('view', function ($view) use ($path, $namespace) {
-            if (isset($this->app->config['view']['paths']) &&
-                is_array($this->app->config['view']['paths'])) {
-                foreach ($this->app->config['view']['paths'] as $viewPath) {
-                    if (is_dir($appPath = $viewPath.'/vendor/'.$namespace)) {
-                        $view->addNamespace($namespace, $appPath);
-                    }
-                }
-            }
+    // protected function loadViewsFrom($path, $namespace)
+    // {
+    //     $this->callAfterResolving('view', function ($view) use ($path, $namespace) {
+    //         if (isset($this->app->config['view']['paths']) &&
+    //             is_array($this->app->config['view']['paths'])) {
+    //             foreach ($this->app->config['view']['paths'] as $viewPath) {
+    //                 if (is_dir($appPath = $viewPath.'/vendor/'.$namespace)) {
+    //                     $view->addNamespace($namespace, $appPath);
+    //                 }
+    //             }
+    //         }
 
-            $view->addNamespace($namespace, $path);
-        });
-    }
+    //         $view->addNamespace($namespace, $path);
+    //     });
+    // }
 
     /**
      * Register the given view components with a custom prefix.
@@ -203,14 +183,14 @@ abstract class ServiceProvider
      * @param  array  $components
      * @return void
      */
-    protected function loadViewComponentsAs($prefix, array $components)
-    {
-        $this->callAfterResolving(BladeCompiler::class, function ($blade) use ($prefix, $components) {
-            foreach ($components as $alias => $component) {
-                $blade->component($component, is_string($alias) ? $alias : null, $prefix);
-            }
-        });
-    }
+    // protected function loadViewComponentsAs($prefix, array $components)
+    // {
+    //     $this->callAfterResolving(BladeCompiler::class, function ($blade) use ($prefix, $components) {
+    //         foreach ($components as $alias => $component) {
+    //             $blade->component($component, is_string($alias) ? $alias : null, $prefix);
+    //         }
+    //     });
+    // }
 
     /**
      * Register a translation file namespace.
@@ -219,12 +199,12 @@ abstract class ServiceProvider
      * @param  string  $namespace
      * @return void
      */
-    protected function loadTranslationsFrom($path, $namespace)
-    {
-        $this->callAfterResolving('translator', function ($translator) use ($path, $namespace) {
-            $translator->addNamespace($namespace, $path);
-        });
-    }
+    // protected function loadTranslationsFrom($path, $namespace)
+    // {
+    //     $this->callAfterResolving('translator', function ($translator) use ($path, $namespace) {
+    //         $translator->addNamespace($namespace, $path);
+    //     });
+    // }
 
     /**
      * Register a JSON translation file path.
@@ -232,12 +212,12 @@ abstract class ServiceProvider
      * @param  string  $path
      * @return void
      */
-    protected function loadJsonTranslationsFrom($path)
-    {
-        $this->callAfterResolving('translator', function ($translator) use ($path) {
-            $translator->addJsonPath($path);
-        });
-    }
+    // protected function loadJsonTranslationsFrom($path)
+    // {
+    //     $this->callAfterResolving('translator', function ($translator) use ($path) {
+    //         $translator->addJsonPath($path);
+    //     });
+    // }
 
     /**
      * Register database migration paths.
@@ -245,14 +225,14 @@ abstract class ServiceProvider
      * @param  array|string  $paths
      * @return void
      */
-    protected function loadMigrationsFrom($paths)
-    {
-        $this->callAfterResolving('migrator', function ($migrator) use ($paths) {
-            foreach ((array) $paths as $path) {
-                $migrator->path($path);
-            }
-        });
-    }
+    // protected function loadMigrationsFrom($paths)
+    // {
+    //     $this->callAfterResolving('migrator', function ($migrator) use ($paths) {
+    //         foreach ((array) $paths as $path) {
+    //             $migrator->path($path);
+    //         }
+    //     });
+    // }
 
     /**
      * Register Eloquent model factory paths.
@@ -262,14 +242,14 @@ abstract class ServiceProvider
      * @param  array|string  $paths
      * @return void
      */
-    protected function loadFactoriesFrom($paths)
-    {
-        $this->callAfterResolving(ModelFactory::class, function ($factory) use ($paths) {
-            foreach ((array) $paths as $path) {
-                $factory->load($path);
-            }
-        });
-    }
+    // protected function loadFactoriesFrom($paths)
+    // {
+    //     $this->callAfterResolving(ModelFactory::class, function ($factory) use ($paths) {
+    //         foreach ((array) $paths as $path) {
+    //             $factory->load($path);
+    //         }
+    //     });
+    // }
 
     /**
      * Setup an after resolving listener, or fire immediately if already resolved.
@@ -280,10 +260,10 @@ abstract class ServiceProvider
      */
     protected function callAfterResolving($name, $callback)
     {
-        $this->app->afterResolving($name, $callback);
+        $this->plugin->afterResolving($name, $callback);
 
-        if ($this->app->resolved($name)) {
-            $callback($this->app->make($name), $this->app);
+        if ($this->plugin->resolved($name)) {
+            $callback($this->plugin->make($name), $this->plugin);
         }
     }
 

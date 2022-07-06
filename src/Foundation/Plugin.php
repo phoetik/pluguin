@@ -1,6 +1,6 @@
 <?php
 
-namespace Illuminate\Foundation;
+namespace Pluguin\Foundation;
 
 use Illuminate\Config\Repository as Config;
 use Illuminate\Container\Container;
@@ -143,7 +143,6 @@ class Plugin extends Container implements PluginContract
         $this->pluguin = $pluguin;
 
         $this->registerBaseBindings();
-        $this->loadConfiguration();
         $this->registerBaseServiceProviders();
         $this->registerCoreContainerAliases();
     }
@@ -155,7 +154,7 @@ class Plugin extends Container implements PluginContract
      */
     public function version()
     {
-        // return static::VERSION;
+        return $this["config"]->get("plugin.version","0.0.1");
     }
 
     /**
@@ -178,19 +177,6 @@ class Plugin extends Container implements PluginContract
         //         new Filesystem, $this->basePath(), $this->getCachedPackagesPath()
         //     );
         // });
-    }
-
-    protected function loadConfiguration()
-    {
-        $attributes = [];
-
-        $configFile = $this->basePath("config.php");
-
-        if (file_exists($configFile)) {
-            $attributes = require_once $configFile;
-        }
-
-        $this->instance("config", new Config($attributes));
     }
 
     /**
@@ -266,7 +252,7 @@ class Plugin extends Container implements PluginContract
         $this->instance('path', $this->path());
         $this->instance('path.base', $this->basePath());
         $this->instance('path.file', $this->filePath());
-        $this->instance('path.config', $this->configFile());
+        $this->instance('path.config', $this->configPath());
         $this->instance('path.assets', $this->assetsPath());
         $this->instance('path.database', $this->databasePath());
         $this->instance('path.resources', $this->resourcePath());
@@ -337,14 +323,14 @@ class Plugin extends Container implements PluginContract
     }
 
     /**
-     * Get the path to the plugin configuration file.
+     * Get the path to the plugins configuration files.
      *
      * @param  string  $path
      * @return string
      */
-    public function configFile()
+    public function configPath($path = '')
     {
-        return $this->basePath . DIRECTORY_SEPARATOR . 'config.php';
+        return $this->basePath.DIRECTORY_SEPARATOR.'config'.($path != '' ? DIRECTORY_SEPARATOR.$path : '');
     }
 
     /**
@@ -436,6 +422,17 @@ class Plugin extends Container implements PluginContract
 
         return rtrim($basePath, DIRECTORY_SEPARATOR) . ($path != '' ? DIRECTORY_SEPARATOR . $path : '');
     }
+
+    /**
+     * Determine if the application is running unit tests.
+     *
+     * @return bool
+     */
+    public function runningUnitTests()
+    {
+        return $this->bound('env') && $this['env'] === 'testing';
+    }
+
 
     /**
      * Get or check the current plugin environment.
@@ -857,6 +854,27 @@ class Plugin extends Container implements PluginContract
 
     //     throw new HttpException($code, $message, null, $headers);
     // }
+
+    /**
+     * Determine if the application configuration is cached.
+     *
+     * @return bool
+     */
+    public function configurationIsCached()
+    {
+        return is_file($this->getCachedConfigPath());
+    }
+
+    /**
+     * Get the path to the configuration cache file.
+     *
+     * @return string
+     */
+    public function getCachedConfigPath()
+    {
+        return $this->bootstrapPath('cache/config.php');
+    }
+
 
     /**
      * Register a terminating callback with the plugin.
