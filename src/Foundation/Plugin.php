@@ -12,6 +12,7 @@ use Pluguin\Contracts\Foundation\Plugin as PluginContract;
 use Pluguin\Pluguin;
 // use Illuminate\Support\Str;
 use RuntimeException;
+use Closure;
 
 // use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 // use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -133,14 +134,12 @@ class Plugin extends Container implements PluginContract
      * @param  string|null  $basePath
      * @return void
      */
-    public function __construct($pluginFile, Pluguin $pluguin)
+    public function __construct($pluginFile = '')
     {
 
         $this->setFile($pluginFile);
 
         $this->setBasePath();
-
-        $this->pluguin = $pluguin;
 
         $this->registerBaseBindings();
         $this->registerBaseServiceProviders();
@@ -169,8 +168,6 @@ class Plugin extends Container implements PluginContract
         $this->instance('plugin', $this);
 
         $this->instance(Container::class, $this);
-
-        Pluguin::inject($this);
 
         // $this->singleton(PackageManifest::class, function () {
         //     return new PackageManifest(
@@ -217,6 +214,30 @@ class Plugin extends Container implements PluginContract
     }
 
     /**
+     * Register a callback to run before a bootstrapper.
+     *
+     * @param  string  $bootstrapper
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function beforeBootstrapping($bootstrapper, Closure $callback)
+    {
+        $this['events']->listen('bootstrapping: '.$bootstrapper, $callback);
+    }
+
+    /**
+     * Register a callback to run after a bootstrapper.
+     *
+     * @param  string  $bootstrapper
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function afterBootstrapping($bootstrapper, Closure $callback)
+    {
+        $this['events']->listen('bootstrapped: '.$bootstrapper, $callback);
+    }
+
+    /**
      * Set the plugin file
      *
      * @param  string  $basePath
@@ -235,7 +256,7 @@ class Plugin extends Container implements PluginContract
      */
     public function setBasePath()
     {
-        $this->basePath = rtrim(dirname($this->pluginFile), '\/');
+        $this->basePath = rtrim(dirname($this->file), '\/');
 
         $this->bindPathsInContainer();
 
@@ -430,12 +451,12 @@ class Plugin extends Container implements PluginContract
      */
     public function runningUnitTests()
     {
-        return $this->bound('env') && $this['env'] === 'testing';
+        return $this->environment() === 'testing';
     }
 
 
     /**
-     * Get or check the current plugin environment.
+     * Get the current plugin's environment.
      *
      * @param  string|array  $environments
      * @return string|bool

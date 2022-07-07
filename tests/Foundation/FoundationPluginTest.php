@@ -8,6 +8,7 @@ use Pluguin\Foundation\Plugin;
 use Illuminate\Foundation\Bootstrap\RegisterFacades;
 use Illuminate\Foundation\Events\LocaleUpdated;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Events\Dispatcher;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -19,22 +20,9 @@ class FoundationPluginTest extends TestCase
         m::close();
     }
 
-    public function testSetLocaleSetsLocaleAndFiresLocaleChangedEvent()
-    {
-        $plugin = new Plugin;
-        $plugin['config'] = $config = m::mock(stdClass::class);
-        $config->shouldReceive('set')->once()->with('app.locale', 'foo');
-        $plugin['translator'] = $trans = m::mock(stdClass::class);
-        $trans->shouldReceive('setLocale')->once()->with('foo');
-        $plugin['events'] = $events = m::mock(stdClass::class);
-        $events->shouldReceive('dispatch')->once()->with(m::type(LocaleUpdated::class));
-
-        $plugin->setLocale('foo');
-    }
-
     public function testServiceProvidersAreCorrectlyRegistered()
     {
-        $provider = m::mock(ApplicationBasicServiceProviderStub::class);
+        $provider = m::mock(PluginBasicServiceProviderStub::class);
         $class = get_class($provider);
         $provider->shouldReceive('register')->once();
         $plugin = new Plugin;
@@ -99,7 +87,7 @@ class FoundationPluginTest extends TestCase
         $plugin->register($provider);
 
         $this->assertTrue($plugin->providerIsLoaded($class));
-        $this->assertFalse($plugin->providerIsLoaded(ApplicationBasicServiceProviderStub::class));
+        $this->assertFalse($plugin->providerIsLoaded(PluginBasicServiceProviderStub::class));
     }
 
     public function testDeferredServicesMarkedAsBound()
@@ -113,7 +101,7 @@ class FoundationPluginTest extends TestCase
     public function testDeferredServicesAreSharedProperly()
     {
         $plugin = new Plugin;
-        $plugin->setDeferredServices(['foo' => ApplicationDeferredSharedServiceProviderStub::class]);
+        $plugin->setDeferredServices(['foo' => PluginDeferredSharedServiceProviderStub::class]);
         $this->assertTrue($plugin->bound('foo'));
         $one = $plugin->make('foo');
         $two = $plugin->make('foo');
@@ -201,39 +189,30 @@ class FoundationPluginTest extends TestCase
     public function testEnvironment()
     {
         $plugin = new Plugin;
-        $plugin['env'] = 'foo';
+        $plugin['config'] = new Repository(['plugin' => ['env' => "something"]]);
 
-        $this->assertSame('foo', $plugin->environment());
-
-        $this->assertTrue($plugin->environment('foo'));
-        $this->assertTrue($plugin->environment('f*'));
-        $this->assertTrue($plugin->environment('foo', 'bar'));
-        $this->assertTrue($plugin->environment(['foo', 'bar']));
-
-        $this->assertFalse($plugin->environment('qux'));
-        $this->assertFalse($plugin->environment('q*'));
-        $this->assertFalse($plugin->environment('qux', 'bar'));
-        $this->assertFalse($plugin->environment(['qux', 'bar']));
+        $this->assertSame('something', $plugin->environment());
     }
 
     public function testEnvironmentHelpers()
     {
         $local = new Plugin;
-        $local['env'] = 'local';
+
+        $local['config'] = new Repository(['plugin' => ['env' => "local"]]);
 
         $this->assertTrue($local->isLocal());
         $this->assertFalse($local->isProduction());
         $this->assertFalse($local->runningUnitTests());
 
         $production = new Plugin;
-        $production['env'] = 'production';
+        $production['config'] = new Repository(['plugin' => ['env' => "production"]]);
 
         $this->assertTrue($production->isProduction());
         $this->assertFalse($production->isLocal());
         $this->assertFalse($production->runningUnitTests());
 
         $testing = new Plugin;
-        $testing['env'] = 'testing';
+        $testing['config'] = new Repository(['plugin' => ['env' => "testing"]]);
 
         $this->assertTrue($testing->runningUnitTests());
         $this->assertFalse($testing->isLocal());
@@ -243,29 +222,20 @@ class FoundationPluginTest extends TestCase
     public function testDebugHelper()
     {
         $debugOff = new Plugin;
-        $debugOff['config'] = new Repository(['app' => ['debug' => false]]);
+        $debugOff['config'] = new Repository(['plugin' => ['debug' => false]]);
 
         $this->assertFalse($debugOff->hasDebugModeEnabled());
 
         $debugOn = new Plugin;
-        $debugOn['config'] = new Repository(['app' => ['debug' => true]]);
+        $debugOn['config'] = new Repository(['plugin' => ['debug' => true]]);
 
         $this->assertTrue($debugOn->hasDebugModeEnabled());
-    }
-
-    public function testMethodAfterLoadingEnvironmentAddsClosure()
-    {
-        $plugin = new Plugin;
-        $closure = function () {
-            //
-        };
-        $plugin->afterLoadingEnvironment($closure);
-        $this->assertArrayHasKey(0, $plugin['events']->getListeners('bootstrapped: Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables'));
     }
 
     public function testBeforeBootstrappingAddsClosure()
     {
         $plugin = new Plugin;
+        $plugin['events'] = new Dispatcher($plugin);
         $closure = function () {
             //
         };
@@ -302,6 +272,8 @@ class FoundationPluginTest extends TestCase
     public function testAfterBootstrappingAddsClosure()
     {
         $plugin = new Plugin;
+        $plugin['events'] = new Dispatcher($plugin);
+
         $closure = function () {
             //
         };
@@ -376,126 +348,15 @@ class FoundationPluginTest extends TestCase
 
     public function testGetNamespace()
     {
-        $plugin1 = new Plugin(realpath(__DIR__.'/fixtures/laravel1'));
-        $plugin2 = new Plugin(realpath(__DIR__.'/fixtures/laravel2'));
+        $plugin1 = new Plugin(realpath(__DIR__.'/fixtures/plugin1/plugin.php'));
+        $plugin2 = new Plugin(realpath(__DIR__.'/fixtures/plugin2/plugin.php'));
 
-        $this->assertSame('Laravel\\One\\', $plugin1->getNamespace());
-        $this->assertSame('Laravel\\Two\\', $plugin2->getNamespace());
-    }
-
-    public function testCachePathsResolveToBootstrapCacheDirectory()
-    {
-        $plugin = new Plugin('/base/path');
-
-        $ds = DIRECTORY_SEPARATOR;
-        $this->assertSame('/base/path'.$ds.'bootstrap'.$ds.'cache/services.php', $plugin->getCachedServicesPath());
-        $this->assertSame('/base/path'.$ds.'bootstrap'.$ds.'cache/packages.php', $plugin->getCachedPackagesPath());
-        $this->assertSame('/base/path'.$ds.'bootstrap'.$ds.'cache/config.php', $plugin->getCachedConfigPath());
-        $this->assertSame('/base/path'.$ds.'bootstrap'.$ds.'cache/routes-v7.php', $plugin->getCachedRoutesPath());
-        $this->assertSame('/base/path'.$ds.'bootstrap'.$ds.'cache/events.php', $plugin->getCachedEventsPath());
-    }
-
-    public function testEnvPathsAreUsedForCachePathsWhenSpecified()
-    {
-        $plugin = new Plugin('/base/path');
-        $_SERVER['APP_SERVICES_CACHE'] = '/absolute/path/services.php';
-        $_SERVER['APP_PACKAGES_CACHE'] = '/absolute/path/packages.php';
-        $_SERVER['APP_CONFIG_CACHE'] = '/absolute/path/config.php';
-        $_SERVER['APP_ROUTES_CACHE'] = '/absolute/path/routes.php';
-        $_SERVER['APP_EVENTS_CACHE'] = '/absolute/path/events.php';
-
-        $this->assertSame('/absolute/path/services.php', $plugin->getCachedServicesPath());
-        $this->assertSame('/absolute/path/packages.php', $plugin->getCachedPackagesPath());
-        $this->assertSame('/absolute/path/config.php', $plugin->getCachedConfigPath());
-        $this->assertSame('/absolute/path/routes.php', $plugin->getCachedRoutesPath());
-        $this->assertSame('/absolute/path/events.php', $plugin->getCachedEventsPath());
-
-        unset(
-            $_SERVER['APP_SERVICES_CACHE'],
-            $_SERVER['APP_PACKAGES_CACHE'],
-            $_SERVER['APP_CONFIG_CACHE'],
-            $_SERVER['APP_ROUTES_CACHE'],
-            $_SERVER['APP_EVENTS_CACHE']
-        );
-    }
-
-    public function testEnvPathsAreUsedAndMadeAbsoluteForCachePathsWhenSpecifiedAsRelative()
-    {
-        $plugin = new Plugin('/base/path');
-        $_SERVER['APP_SERVICES_CACHE'] = 'relative/path/services.php';
-        $_SERVER['APP_PACKAGES_CACHE'] = 'relative/path/packages.php';
-        $_SERVER['APP_CONFIG_CACHE'] = 'relative/path/config.php';
-        $_SERVER['APP_ROUTES_CACHE'] = 'relative/path/routes.php';
-        $_SERVER['APP_EVENTS_CACHE'] = 'relative/path/events.php';
-
-        $ds = DIRECTORY_SEPARATOR;
-        $this->assertSame('/base/path'.$ds.'relative/path/services.php', $plugin->getCachedServicesPath());
-        $this->assertSame('/base/path'.$ds.'relative/path/packages.php', $plugin->getCachedPackagesPath());
-        $this->assertSame('/base/path'.$ds.'relative/path/config.php', $plugin->getCachedConfigPath());
-        $this->assertSame('/base/path'.$ds.'relative/path/routes.php', $plugin->getCachedRoutesPath());
-        $this->assertSame('/base/path'.$ds.'relative/path/events.php', $plugin->getCachedEventsPath());
-
-        unset(
-            $_SERVER['APP_SERVICES_CACHE'],
-            $_SERVER['APP_PACKAGES_CACHE'],
-            $_SERVER['APP_CONFIG_CACHE'],
-            $_SERVER['APP_ROUTES_CACHE'],
-            $_SERVER['APP_EVENTS_CACHE']
-        );
-    }
-
-    public function testEnvPathsAreUsedAndMadeAbsoluteForCachePathsWhenSpecifiedAsRelativeWithNullBasePath()
-    {
-        $plugin = new Plugin;
-        $_SERVER['APP_SERVICES_CACHE'] = 'relative/path/services.php';
-        $_SERVER['APP_PACKAGES_CACHE'] = 'relative/path/packages.php';
-        $_SERVER['APP_CONFIG_CACHE'] = 'relative/path/config.php';
-        $_SERVER['APP_ROUTES_CACHE'] = 'relative/path/routes.php';
-        $_SERVER['APP_EVENTS_CACHE'] = 'relative/path/events.php';
-
-        $ds = DIRECTORY_SEPARATOR;
-        $this->assertSame($ds.'relative/path/services.php', $plugin->getCachedServicesPath());
-        $this->assertSame($ds.'relative/path/packages.php', $plugin->getCachedPackagesPath());
-        $this->assertSame($ds.'relative/path/config.php', $plugin->getCachedConfigPath());
-        $this->assertSame($ds.'relative/path/routes.php', $plugin->getCachedRoutesPath());
-        $this->assertSame($ds.'relative/path/events.php', $plugin->getCachedEventsPath());
-
-        unset(
-            $_SERVER['APP_SERVICES_CACHE'],
-            $_SERVER['APP_PACKAGES_CACHE'],
-            $_SERVER['APP_CONFIG_CACHE'],
-            $_SERVER['APP_ROUTES_CACHE'],
-            $_SERVER['APP_EVENTS_CACHE']
-        );
-    }
-
-    public function testEnvPathsAreAbsoluteInWindows()
-    {
-        $plugin = new Plugin(__DIR__);
-        $plugin->addAbsoluteCachePathPrefix('C:');
-        $_SERVER['APP_SERVICES_CACHE'] = 'C:\framework\services.php';
-        $_SERVER['APP_PACKAGES_CACHE'] = 'C:\framework\packages.php';
-        $_SERVER['APP_CONFIG_CACHE'] = 'C:\framework\config.php';
-        $_SERVER['APP_ROUTES_CACHE'] = 'C:\framework\routes.php';
-        $_SERVER['APP_EVENTS_CACHE'] = 'C:\framework\events.php';
-
-        $this->assertSame('C:\framework\services.php', $plugin->getCachedServicesPath());
-        $this->assertSame('C:\framework\packages.php', $plugin->getCachedPackagesPath());
-        $this->assertSame('C:\framework\config.php', $plugin->getCachedConfigPath());
-        $this->assertSame('C:\framework\routes.php', $plugin->getCachedRoutesPath());
-        $this->assertSame('C:\framework\events.php', $plugin->getCachedEventsPath());
-
-        unset(
-            $_SERVER['APP_SERVICES_CACHE'],
-            $_SERVER['APP_PACKAGES_CACHE'],
-            $_SERVER['APP_CONFIG_CACHE'],
-            $_SERVER['APP_ROUTES_CACHE'],
-            $_SERVER['APP_EVENTS_CACHE']
-        );
+        $this->assertSame('Plugin\\One\\', $plugin1->getNamespace());
+        $this->assertSame('Plugin\\Two\\', $plugin2->getNamespace());
     }
 }
 
-class ApplicationBasicServiceProviderStub extends ServiceProvider
+class PluginBasicServiceProviderStub extends ServiceProvider
 {
     public function boot()
     {
@@ -508,7 +369,7 @@ class ApplicationBasicServiceProviderStub extends ServiceProvider
     }
 }
 
-class ApplicationDeferredSharedServiceProviderStub extends ServiceProvider implements DeferrableProvider
+class PluginDeferredSharedServiceProviderStub extends ServiceProvider implements DeferrableProvider
 {
     public function register()
     {
