@@ -34,8 +34,7 @@ class FoundationPluginTest extends TestCase
     public function testClassesAreBoundWhenServiceProviderIsRegistered()
     {
         $plugin = new Plugin;
-        $plugin->register($provider = new class($plugin) extends ServiceProvider
-        {
+        $plugin->register($provider = new class($plugin) extends ServiceProvider {
             public $bindings = [
                 AbstractClass::class => ConcreteClass::class,
             ];
@@ -52,8 +51,7 @@ class FoundationPluginTest extends TestCase
     public function testSingletonsAreCreatedWhenServiceProviderIsRegistered()
     {
         $plugin = new Plugin;
-        $plugin->register($provider = new class($plugin) extends ServiceProvider
-        {
+        $plugin->register($provider = new class($plugin) extends ServiceProvider {
             public $singletons = [
                 AbstractClass::class => ConcreteClass::class,
             ];

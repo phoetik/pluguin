@@ -3,7 +3,6 @@
 namespace Pluguin\Support;
 
 use Closure;
-use Illuminate\Console\Application as Artisan;
 use Illuminate\Contracts\Foundation\CachesConfiguration;
 use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Contracts\Support\DeferrableProvider;
@@ -13,7 +12,7 @@ use Illuminate\View\Compilers\BladeCompiler;
 abstract class ServiceProvider
 {
     /**
-     * The application instance.
+     * The plugin instance.
      *
      * @var \Pluguin\Contracts\Foundation\Plugin
      */
@@ -59,7 +58,7 @@ abstract class ServiceProvider
     }
 
     /**
-     * Register any application services.
+     * Register any plugin services.
      *
      * @return void
      */

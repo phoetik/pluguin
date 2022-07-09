@@ -505,23 +505,8 @@ class Plugin extends Container implements PluginContract
     {
         $providers = $this->make('config')->get('plugin.providers');
 
-        foreach ($providers["eager"] ?? [] as $provider) {
-            $this->register($provider);
-        }
-
-        $deferred = [];
-
-        foreach ($providers["deferred"] ?? [] as $provider => $services) {
-            if (is_array($services)) {
-                foreach ($services as $service) {
-                    $deferred[$service] = $provider;
-                }
-            } else {
-                $deferred[$services] = $provider;
-            }
-        }
-
-        $this->addDeferredServices($deferred);
+        (new ProviderRepository($this, $providers))
+                    ->load();
     }
 
     /**
