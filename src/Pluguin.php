@@ -16,16 +16,18 @@ final class Pluguin
 {
     public $container;
 
-    private $bootstrappers = [
-        \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
-        \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
-        \Pluguin\Foundation\Bootstrap\BootProviders::class,
-    ];
+    // private $bootstrappers = [
+    //     \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
+    //     \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
+    //     \Pluguin\Foundation\Bootstrap\BootProviders::class,
+    // ];
 
     private static $instance;
 
     private function __construct()
     {
+        $this->checkOptions();
+
         $this->setupContainer();
 
         $this->setupConfiguration();
@@ -35,6 +37,29 @@ final class Pluguin
         $this->setupEloquent();
 
         $this->registerAction();
+    }
+
+    private function checkOptions()
+    {
+        $options = \get_option("pluguin");
+
+        if($options === false)
+        {
+            $options = [];
+            $this->addOptions($options);
+        }
+
+        $this->options = $options;
+    }
+
+    private function addOptions(array $options)
+    {
+        \add_option("pluguin",$options,'','yes');
+    }
+
+    private function updateOptions(array $options)
+    {
+        \update_option("pluguin",$options);
     }
 
     private function setupContainer()
@@ -150,15 +175,20 @@ final class Pluguin
     {
         $plugin->instance('events', $this->container["events"]);
         $plugin->instance('db', $this->container["db"]);
+        $plugin->instance('files', $this->container["files
+        "]);
         $plugin->addDeferredServices([
             MigrationServiceProvider::class,
         ]);
 
-        if ($plugin->hasBootstrappers()) {
-            $plugin->bootstrapWith($plugin->getBootstrappers());
-        } else {
-            $plugin->bootstrapWith($this->bootstrappers);
-        }
+        
+        // $plugin->bootstrapWith($plugin->getBootstrappers());
+
+        $pluginFile = $plugin->filePath();
+
+        \register_activation_hook($pluginFile, [$plugin,"activate"]);
+
+        $plugin->init();
     }
 
     public static function getInstance()

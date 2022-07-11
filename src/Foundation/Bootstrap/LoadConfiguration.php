@@ -60,8 +60,8 @@ class LoadConfiguration
     {
         $files = $this->getConfigurationFiles($plugin);
 
-        if (! isset($files['app'])) {
-            throw new Exception('Unable to load the "app" configuration file.');
+        if (! isset($files['plugin'])) {
+            throw new Exception('Unable to load the "plugin" configuration file.');
         }
 
         foreach ($files as $key => $path) {
@@ -75,11 +75,11 @@ class LoadConfiguration
      * @param  Pluguin\Contracts\Foundation\Plugin  $app
      * @return array
      */
-    protected function getConfigurationFiles(Plugin $app)
+    protected function getConfigurationFiles(Plugin $plugin)
     {
         $files = [];
 
-        $configPath = realpath($app->configPath());
+        $configPath = realpath($plugin->configPath());
 
         foreach (Finder::create()->files()->name('*.php')->in($configPath) as $file) {
             $directory = $this->getNestedDirectory($file, $configPath);

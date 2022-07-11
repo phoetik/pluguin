@@ -136,7 +136,6 @@ class Plugin extends Container implements PluginContract
      */
     public function __construct($pluginFile = '')
     {
-
         $this->setFile($pluginFile);
 
         $this->setBasePath();
@@ -153,7 +152,7 @@ class Plugin extends Container implements PluginContract
      */
     public function version()
     {
-        return $this["config"]->get("plugin.version","0.0.1");
+        return $this["config"]->get("plugin.version", "0.0.1");
     }
 
     /**
@@ -879,6 +878,33 @@ class Plugin extends Container implements PluginContract
     public function getCachedConfigPath()
     {
         return $this->bootstrapPath('cache/config.php');
+    }
+
+    public function cacheConfiguration()
+    {
+        $this->clearConfigurationCache();
+
+        $config = $this['config']->all();
+
+        $configPath = $this->getCachedConfigPath();
+
+        $this["files"]->put(
+            $configPath,
+            '<?php return '.var_export($config, true).';'.PHP_EOL
+        );
+
+        try {
+            require $configPath;
+        } catch (\Throwable $e) {
+            $this["files"]->delete($configPath);
+
+            throw new \LogicException('configuration files are not serializable.', 0, $e);
+        }
+    }
+
+    public function clearConfigurationCache()
+    {
+        $this["files"]->delete($this->getCachedConfigPath());
     }
 
 

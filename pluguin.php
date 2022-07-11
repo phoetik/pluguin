@@ -28,24 +28,6 @@ if (defined("PLUGUIN") || class_exists(Pluguin::class)) {
     return;
 }
 
-add_action( 'admin_menu', 'wporg_options_page' );
-function wporg_options_page() {
-    add_menu_page(
-        'WPOrg',
-        'WPOrg Options',
-        'manage_options',
-        // plugin_dir_path(__FILE__) . 'admin/view.php',
-        'post-new.php?post_type=acf-s-group',
-        // function(){
-        //     return "hi";
-        // },
-        null,
-        plugin_dir_url(__FILE__) . 'images/icon_wporg.png',
-        20
-    );
-}
-
-return;
 require __DIR__ . "/vendor/autoload.php";
 
 define("PLUGUIN", true);
@@ -56,6 +38,7 @@ function pluguin()
 {
     return Pluguin::getInstance();
 }
+
 
 
 // pluguin()->database->migrator()->run([__DIR__."/migrations/CreateLosersTable.php"]);
