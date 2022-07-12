@@ -177,16 +177,28 @@ final class Pluguin
         $plugin->instance('db', $this->container["db"]);
         $plugin->instance('files', $this->container["files
         "]);
+
         $plugin->addDeferredServices([
             MigrationServiceProvider::class,
         ]);
+
+        if(!isset($this->options["plugins"][$plugin::class]))
+        {
+            //never detected before, so run plugins installation hook
+
+            $this->options["plugins"][$plugin::class] = [];
+        }
 
         
         // $plugin->bootstrapWith($plugin->getBootstrappers());
 
         $pluginFile = $plugin->filePath();
 
-        \register_activation_hook($pluginFile, [$plugin,"activate"]);
+        \register_activation_hook($pluginFile, $plugin::class."::activationHook");
+
+        \register_deactivation_hook($pluginFile, $plugin::class."::activationHook");
+
+        \register_activation_hook($pluginFile, );
 
         $plugin->init();
     }
