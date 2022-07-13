@@ -186,7 +186,7 @@ final class Pluguin
         {
             //never detected before, so run plugins installation hook
 
-            $this->options["plugins"][$plugin::class] = [];
+            $this->options["plugins"][$plugin->filePath()] = [];
         }
 
         
@@ -196,9 +196,9 @@ final class Pluguin
 
         \register_activation_hook($pluginFile, $plugin::class."::activationHook");
 
-        \register_deactivation_hook($pluginFile, $plugin::class."::activationHook");
+        \register_deactivation_hook($pluginFile, $plugin::class."::deactivationHook");
 
-        \register_activation_hook($pluginFile, );
+        \register_uninstall_hook($pluginFile, $plugin::class."::uninstallHook");
 
         $plugin->init();
     }
