@@ -44,6 +44,12 @@ class Plugin extends Container implements PluginContract
      */
     protected $hasBeenBootstrapped = false;
 
+    protected $bootstrappers = [
+        \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
+        \Pluguin\Foundation\Bootstrap\bootProviders::class,
+        \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
+    ];
+
     /**
      * Indicates if the plugin has "booted".
      *
@@ -152,7 +158,21 @@ class Plugin extends Container implements PluginContract
      */
     public function version()
     {
-        return $this["config"]->get("plugin.version", "0.0.1");
+        $version = $this["config"]->get("plugin.version",null);
+
+        if($this->isValidVersion($version))
+        {
+            return $version;
+        }
+        else
+        {
+            \wp_die("Version isn't valid");
+        }
+    }
+
+    private function isValidVersion($version)
+    {
+        return version_compare( $version, '0.0.1', '>=' ) >= 0;
     }
 
     /**
@@ -167,12 +187,6 @@ class Plugin extends Container implements PluginContract
         $this->instance('plugin', $this);
 
         $this->instance(Container::class, $this);
-
-        // $this->singleton(PackageManifest::class, function () {
-        //     return new PackageManifest(
-        //         new Filesystem, $this->basePath(), $this->getCachedPackagesPath()
-        //     );
-        // });
     }
 
     /**
@@ -200,6 +214,11 @@ class Plugin extends Container implements PluginContract
         foreach ($bootstrappers as $bootstrapper) {
             $this->make($bootstrapper)->bootstrap($this);
         }
+    }
+
+    public function getBootstrappers()
+    {
+        return $this->bootstrappers;
     }
 
     /**
@@ -1109,5 +1128,64 @@ class Plugin extends Container implements PluginContract
     private function loadPluginData()
     {
         get_plugin_data($plugin_file, $markup = true, $translate = true);
+    }
+
+    public function install()
+    {
+        //
+    }
+
+    public function activate()
+    {
+        //
+    }
+
+    public function deactivate()
+    {
+        //
+    }
+
+    public function uninstall()
+    {
+        //
+    }
+
+    public function upgrade($from, $to)
+    {
+        //
+    }
+
+    public function downgrade($from, $to)
+    {
+        //
+    }
+
+    public static function installHook()
+    {
+        $plugin = static::getInstance();
+        $plugin->install();
+    }
+
+    public static function activationHook()
+    {
+        $plugin = static::getInstance();
+        $plugin->activate();
+    }
+
+    public static function deactivationHook()
+    {
+        $plugin = static::getInstance();
+        $plugin->deactivate();
+    }
+
+    public static function uninstallHook()
+    {
+        $plugin = static::getInstance();
+        $plugin->uninstall();
+    }
+
+    public static function hasInstance()
+    {
+        return isset(static::$instance);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Illuminate\Events;
+namespace Pluguin\Events;
 
 use Closure;
 use Exception;

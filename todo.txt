@@ -1,0 +1,4 @@
+register hooks,
+fix contracts,
+write news tests
+check all hooks in plugin and eject if pluguin isn't installed

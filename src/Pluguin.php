@@ -8,19 +8,16 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Fluent;
-use Pluguin\Contracts\Plugin;
+use Pluguin\Contracts\Foundation\Plugin;
 use Pluguin\Database\MigrationServiceProvider;
 use Pluguin\Events\Dispatcher;
+use PDO;
 
 final class Pluguin
 {
     public $container;
 
-    // private $bootstrappers = [
-    //     \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
-    //     \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
-    //     \Pluguin\Foundation\Bootstrap\BootProviders::class,
-    // ];
+    public $options;
 
     private static $instance;
 
@@ -36,30 +33,32 @@ final class Pluguin
 
         $this->setupEloquent();
 
+        $this->registerHooks();
+
         $this->registerAction();
     }
 
     private function checkOptions()
     {
-        $options = \get_option("pluguin");
+        $this->options = \get_option("pluguin");
 
-        if($options === false)
-        {
-            $options = [];
-            $this->addOptions($options);
+        if ($this->options === false) {
+            $this->options = [
+                "plugins" => []
+            ];
+
+            $this->addOptions();
         }
-
-        $this->options = $options;
     }
 
-    private function addOptions(array $options)
+    private function addOptions()
     {
-        \add_option("pluguin",$options,'','yes');
+        \add_option("pluguin", $this->options, '', 'yes');
     }
 
-    private function updateOptions(array $options)
+    private function updateOptions()
     {
-        \update_option("pluguin",$options);
+        \update_option("pluguin", $this->options);
     }
 
     private function setupContainer()
@@ -157,6 +156,19 @@ final class Pluguin
         Model::setEventDispatcher($this->container["events"]);
     }
 
+    private function registerHooks()
+    {
+        $pluguin = dirname(__DIR__)."/pluguin.php";
+
+        
+
+        \register_activation_hook($pluguin, self::class."::activate");
+
+        \register_deactivation_hook($pluguin, self::class."::deactivate");
+
+        \register_uninstall_hook($pluguin, self::class."::uninstall");
+    }
+
     private function registerAction()
     {
         \add_action("plugins_loaded", function () {
@@ -164,35 +176,45 @@ final class Pluguin
         });
     }
 
-    public static function init()
-    {
-        if (!isset(static::$instance)) {
-            static::$instance = new static();
-        }
-    }
-
-    public function register(Plugin $plugin)
+    public function register(Plugin $plugin, $bootstrappers = null)
     {
         $plugin->instance('events', $this->container["events"]);
         $plugin->instance('db', $this->container["db"]);
-        $plugin->instance('files', $this->container["files
-        "]);
+        $plugin->instance('files', $this->container["files"]);
 
         $plugin->addDeferredServices([
             MigrationServiceProvider::class,
         ]);
 
-        if(!isset($this->options["plugins"][$plugin::class]))
-        {
-            //never detected before, so run plugins installation hook
+        $pluginFile = $plugin->filePath();
 
-            $this->options["plugins"][$plugin->filePath()] = [];
+        $plugin->bootstrapWith($bootstrappers ?? $plugin->getBootstrappers());
+
+        $version = $plugin->version();
+
+        if (!isset($this->options["plugins"][$plugin::class])) {
+            //never detected before, so run plugins installation hook
+            $basename = \plugin_basename($pluginFile);
+
+            $this->options["plugins"][$basename] = [
+                "version" => $version
+            ];
+
+            $plugin::installHook();
+        } 
+
+        $versionOption = $this->options["plugins"][$basename]["version"];
+
+        if($version > $versionOption)
+        {
+            $plugin->upgrade($versionOption, $version);
+        }
+        elseif($version < $versionOption)
+        {
+            $plugin->downgrade($version, $versionOption);
         }
 
-        
-        // $plugin->bootstrapWith($plugin->getBootstrappers());
-
-        $pluginFile = $plugin->filePath();
+        $this->updateOptions();
 
         \register_activation_hook($pluginFile, $plugin::class."::activationHook");
 
@@ -203,10 +225,59 @@ final class Pluguin
         $plugin->init();
     }
 
+    public static function init()
+    {
+        if (!isset(self::$instance)) {
+            self::$instance = new self();
+        }
+    }
+
     public static function getInstance()
     {
-        static::init();
+        self::init();
 
-        return static::$instance;
+        return self::$instance;
     }
+
+    public static function activate() 
+    {
+        $pluguin = self::getInstance();
+        
+    }
+
+    public static function deactivate() 
+    {
+        $pluguin = self::getInstance();
+
+        if(!empty($pluguin->options["plugins"]))
+        {
+            $pluginNames = [];
+
+            foreach($pluguin->options["plugins"] as $pluginBasename => $data)
+            {
+                $pluginFile = WP_PLUGIN_DIR . "/" . $pluginBasename;
+
+                $pluginInfo = \get_plugin_data( $pluginFile );
+
+                $pluginNames[] = $pluginInfo["Name"] ?? "";
+            }
+
+            $pluginNames = implode(", ",$pluginNames);
+
+            $adminPluginsUrl = \admin_url('plugins.php');
+            $error = "Deactivation failed because following plugin(s) depend(s) on Pluguin: <strong>$pluginNames</strong>.<br><br><a href='$adminPluginsUrl'>Return back to plugins.</a>";
+
+            \wp_die($error);
+        }
+    }
+
+    public static function uninstall() 
+    {
+        $pluguin = self::getInstance();
+    }
+
+    // private static function getBasename()
+    // {
+    //     return plugin_basename(dirname(__DIR__)."/pluguin.php");
+    // }
 }

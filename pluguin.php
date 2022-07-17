@@ -39,6 +39,4 @@ function pluguin()
     return Pluguin::getInstance();
 }
 
-
-
 // pluguin()->database->migrator()->run([__DIR__."/migrations/CreateLosersTable.php"]);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Illuminate\Foundation\Bootstrap;
+namespace Pluguin\Foundation\Bootstrap;
 
 use Exception;
 use Illuminate\Config\Repository;
