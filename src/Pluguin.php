@@ -11,13 +11,16 @@ use Illuminate\Support\Fluent;
 use Pluguin\Contracts\Foundation\Plugin;
 use Pluguin\Database\MigrationServiceProvider;
 use Pluguin\Events\Dispatcher;
-use PDO;
+use \BadMethodCallException;
+use \PDO;
 
 final class Pluguin
 {
     public $container;
 
     public $options;
+
+    private $plugins = [];
 
     private static $instance;
 
@@ -162,11 +165,11 @@ final class Pluguin
 
         
 
-        \register_activation_hook($pluguin, self::class."::activate");
+        \register_activation_hook($pluguin, self::class."::activationHook");
 
-        \register_deactivation_hook($pluguin, self::class."::deactivate");
+        \register_deactivation_hook($pluguin, self::class."::deactivationHook");
 
-        \register_uninstall_hook($pluguin, self::class."::uninstall");
+        \register_uninstall_hook($pluguin, self::class."::uninstallHook");
     }
 
     private function registerAction()
@@ -201,26 +204,25 @@ final class Pluguin
             ];
 
             $plugin::installHook();
-        } 
+        }
 
         $versionOption = $this->options["plugins"][$basename]["version"];
 
-        if($version > $versionOption)
-        {
+        if ($version > $versionOption) {
             $plugin->upgrade($versionOption, $version);
-        }
-        elseif($version < $versionOption)
-        {
+        } elseif ($version < $versionOption) {
             $plugin->downgrade($version, $versionOption);
         }
 
         $this->updateOptions();
 
-        \register_activation_hook($pluginFile, $plugin::class."::activationHook");
+        $this->plugins[$basename] = $plugin;
 
-        \register_deactivation_hook($pluginFile, $plugin::class."::deactivationHook");
+        \register_activation_hook($pluginFile, self::class."::activate_$basename");
 
-        \register_uninstall_hook($pluginFile, $plugin::class."::uninstallHook");
+        \register_deactivation_hook($pluginFile, self::class."::deactivate_$basename");
+
+        \register_uninstall_hook($pluginFile, self::class."::uninstall_$basename");
 
         $plugin->init();
     }
@@ -239,30 +241,27 @@ final class Pluguin
         return self::$instance;
     }
 
-    public static function activate() 
+    public static function activationHook()
     {
         $pluguin = self::getInstance();
-        
     }
 
-    public static function deactivate() 
+    public static function deactivationHook()
     {
         $pluguin = self::getInstance();
 
-        if(!empty($pluguin->options["plugins"]))
-        {
+        if (!empty($pluguin->options["plugins"])) {
             $pluginNames = [];
 
-            foreach($pluguin->options["plugins"] as $pluginBasename => $data)
-            {
+            foreach ($pluguin->options["plugins"] as $pluginBasename => $data) {
                 $pluginFile = WP_PLUGIN_DIR . "/" . $pluginBasename;
 
-                $pluginInfo = \get_plugin_data( $pluginFile );
+                $pluginInfo = \get_plugin_data($pluginFile);
 
                 $pluginNames[] = $pluginInfo["Name"] ?? "";
             }
 
-            $pluginNames = implode(", ",$pluginNames);
+            $pluginNames = implode(", ", $pluginNames);
 
             $adminPluginsUrl = \admin_url('plugins.php');
             $error = "Deactivation failed because following plugin(s) depend(s) on Pluguin: <strong>$pluginNames</strong>.<br><br><a href='$adminPluginsUrl'>Return back to plugins.</a>";
@@ -271,9 +270,60 @@ final class Pluguin
         }
     }
 
-    public static function uninstall() 
+    public function activate($plugin)
+    {
+        $plugin->activate();
+    }
+
+    public function deactivate($plugin)
+    {
+        $plugin->deactivate();
+    }
+
+    public function uninstall($plugin)
+    {
+        $plugin->uninstall();
+
+        unset($this->options[\plugin_basename($plugin->filePath())]);
+
+        $this->updateOptions();
+    }
+
+    public static function uninstallHook()
     {
         $pluguin = self::getInstance();
+    }
+
+    public static function __callStatic($name, $args)
+    {
+        $chunks = explode("_", $name, 2);
+
+        if (count($chunks) != 2) {
+            throw new BadMethodCallException;
+        }
+
+        $function = $chunks[0];
+
+        $basename = $chunks[1];
+
+        $pluguin = self::getInstance();
+
+        $plugin = $pluguin->getPlugin($basename);
+
+        if (in_array($function, [
+            "activate",
+            "deactivate",
+            "uninstall"
+        ])) {
+            $pluguin->{$function}($plugin);
+        } else {
+            throw new BadMethodCallException;
+        }
+    }
+
+    public function getPlugin($basename)
+    {
+        return $this->plugins[$basename];
     }
 
     // private static function getBasename()
