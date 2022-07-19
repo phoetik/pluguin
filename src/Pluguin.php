@@ -296,6 +296,9 @@ final class Pluguin
 
     public static function __callStatic($name, $args)
     {
+        
+        add_action("admin_init",fn()=>var_dump($name));
+
         $chunks = explode("_", $name, 2);
 
         if (count($chunks) != 2) {
