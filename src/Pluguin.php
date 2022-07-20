@@ -179,11 +179,13 @@ final class Pluguin
         });
     }
 
-    public function register(Plugin $plugin, $bootstrappers = null)
+    public static function register(Plugin $plugin, $bootstrappers = null)
     {
-        $plugin->instance('events', $this->container["events"]);
-        $plugin->instance('db', $this->container["db"]);
-        $plugin->instance('files', $this->container["files"]);
+        $pluguin = self::getInstance();
+
+        $plugin->instance('events', $pluguin->container["events"]);
+        $plugin->instance('db', $pluguin->container["db"]);
+        $plugin->instance('files', $pluguin->container["files"]);
 
         $plugin->addDeferredServices([
             MigrationServiceProvider::class,
@@ -195,18 +197,18 @@ final class Pluguin
 
         $version = $plugin->version();
 
-        if (!isset($this->options["plugins"][$plugin::class])) {
+        if (!isset($pluguin->options["plugins"][$plugin::class])) {
             //never detected before, so run plugins installation hook
             $basename = \plugin_basename($pluginFile);
 
-            $this->options["plugins"][$basename] = [
+            $pluguin->options["plugins"][$basename] = [
                 "version" => $version
             ];
 
             $plugin::installHook();
         }
 
-        $versionOption = $this->options["plugins"][$basename]["version"];
+        $versionOption = $pluguin->options["plugins"][$basename]["version"];
 
         if ($version > $versionOption) {
             $plugin->upgrade($versionOption, $version);
@@ -214,9 +216,9 @@ final class Pluguin
             $plugin->downgrade($version, $versionOption);
         }
 
-        $this->updateOptions();
+        $pluguin->updateOptions();
 
-        $this->plugins[$basename] = $plugin;
+        $pluguin->plugins[$basename] = $plugin;
 
         \register_activation_hook($pluginFile, self::class."::activate_$basename");
 
