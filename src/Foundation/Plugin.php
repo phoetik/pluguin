@@ -6,7 +6,7 @@ use Illuminate\Config\Repository as Config;
 use Illuminate\Container\Container;
 // use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Support\Arr;
-use Illuminate\Support\ServiceProvider;
+use Pluguin\Support\ServiceProvider;
 // use Illuminate\Support\Collection;
 use Pluguin\Contracts\Foundation\Plugin as PluginContract;
 use Pluguin\Pluguin;
@@ -46,8 +46,8 @@ class Plugin extends Container implements PluginContract
 
     protected $bootstrappers = [
         \Pluguin\Foundation\Bootstrap\LoadConfiguration::class,
-        \Pluguin\Foundation\Bootstrap\bootProviders::class,
         \Pluguin\Foundation\Bootstrap\RegisterProviders::class,
+        \Pluguin\Foundation\Bootstrap\BootProviders::class
     ];
 
     /**
@@ -521,7 +521,7 @@ class Plugin extends Container implements PluginContract
      */
     public function registerConfiguredProviders()
     {
-        $providers = $this->make('config')->get('plugin.providers');
+        $providers = $this['config']->get('providers');
 
         (new ProviderRepository($this, $providers))
                     ->load();
@@ -699,7 +699,7 @@ class Plugin extends Container implements PluginContract
      */
     public function make($abstract, array $parameters = [])
     {
-        $this->getProviders($abstract = $this->getAlias($abstract));
+        $this->loadDeferredProviderIfNeeded($abstract = $this->getAlias($abstract));
 
         return parent::make($abstract, $parameters);
     }

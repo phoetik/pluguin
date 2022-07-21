@@ -39,6 +39,7 @@ class LoadConfiguration
             $this->loadConfigurationFiles($plugin, $config);
         }
 
+        
         // Finally, we will set the application's environment based on the configuration
         // values that were loaded. We will pass a callback which will be used to get
         // the environment in a web context where an "--env" switch is not present.
@@ -86,7 +87,7 @@ class LoadConfiguration
 
             $files[$directory.basename($file->getRealPath(), '.php')] = $file->getRealPath();
         }
-
+        
         ksort($files, SORT_NATURAL);
 
         return $files;
