@@ -153,15 +153,13 @@ final class Pluguin
 
     private function registerHooks()
     {
-        $pluguin = dirname(__DIR__)."/pluguin.php";
+        $file = dirname(__DIR__)."/pluguin.php";
 
-        
+        \register_activation_hook($file, self::class."::activationHook");
 
-        \register_activation_hook($pluguin, self::class."::activationHook");
+        \register_deactivation_hook($file, self::class."::deactivationHook");
 
-        \register_deactivation_hook($pluguin, self::class."::deactivationHook");
-
-        \register_uninstall_hook($pluguin, self::class."::uninstallHook");
+        \register_uninstall_hook($file, self::class."::uninstallHook");
     }
 
     private function registerAction()
@@ -193,10 +191,10 @@ final class Pluguin
 
         $version = $plugin->version();
 
-        if (!isset($pluguin->options["plugins"][$plugin::class])) {
+        if (!isset($this->options["plugins"][$plugin::class])) {
             //never detected before, so run plugins installation hook
 
-            $pluguin->options["plugins"][$basename] = [
+            $this->options["plugins"][$basename] = [
                 "version" => $version
             ];
 
@@ -213,7 +211,7 @@ final class Pluguin
 
         $this->plugins[$basename] = $plugin;
 
-        $pluguin->updateOptions();
+        $this->updateOptions();
 
         // \register_activation_hook($pluginFile, self::class."::activate_$basename");
 
