@@ -26,7 +26,7 @@ final class Pluguin
 
     private function __construct()
     {
-        $this->checkOptions();
+        $this->loadOptions();
 
         $this->setupContainer();
 
@@ -41,17 +41,9 @@ final class Pluguin
         $this->registerAction();
     }
 
-    private function checkOptions()
+    private function loadOptions()
     {
         $this->options = \get_option("pluguin");
-
-        if ($this->options === false) {
-            $this->options = [
-                "plugins" => []
-            ];
-
-            $this->addOptions();
-        }
     }
 
     private function addOptions()
@@ -179,19 +171,23 @@ final class Pluguin
         });
     }
 
-    public static function register(Plugin $plugin, $bootstrappers = null)
+    public function register(Plugin $plugin)
     {
-        $pluguin = self::getInstance();
+        $pluginFile = $plugin->filePath();
+        $basename = \plugin_basename($pluginFile);
 
-        $plugin->instance('events', $pluguin->container["events"]);
-        $plugin->instance('db', $pluguin->container["db"]);
-        $plugin->instance('files', $pluguin->container["files"]);
+        if(isset($this->plugins[$basename]))
+        {
+            return;
+        }
+
+        $plugin->instance('events', $this->container["events"]);
+        $plugin->instance('db', $this->container["db"]);
+        $plugin->instance('files', $this->container["files"]);
 
         $plugin->addDeferredServices([
             MigrationServiceProvider::class,
         ]);
-
-        $pluginFile = $plugin->filePath();
 
         $plugin->bootstrapWith($bootstrappers ?? $plugin->getBootstrappers());
 
@@ -199,7 +195,6 @@ final class Pluguin
 
         if (!isset($pluguin->options["plugins"][$plugin::class])) {
             //never detected before, so run plugins installation hook
-            $basename = \plugin_basename($pluginFile);
 
             $pluguin->options["plugins"][$basename] = [
                 "version" => $version
@@ -208,7 +203,7 @@ final class Pluguin
             $plugin::installHook();
         }
 
-        $versionOption = $pluguin->options["plugins"][$basename]["version"];
+        $versionOption = $this->options["plugins"][$basename]["version"];
 
         if ($version > $versionOption) {
             $plugin->upgrade($versionOption, $version);
@@ -216,15 +211,15 @@ final class Pluguin
             $plugin->downgrade($version, $versionOption);
         }
 
+        $this->plugins[$basename] = $plugin;
+
         $pluguin->updateOptions();
 
-        $pluguin->plugins[$basename] = $plugin;
+        // \register_activation_hook($pluginFile, self::class."::activate_$basename");
 
-        \register_activation_hook($pluginFile, self::class."::activate_$basename");
+        // \register_deactivation_hook($pluginFile, self::class."::deactivate_$basename");
 
-        \register_deactivation_hook($pluginFile, self::class."::deactivate_$basename");
-
-        \register_uninstall_hook($pluginFile, self::class."::uninstall_$basename");
+        // \register_uninstall_hook($pluginFile, self::class."::uninstall_$basename");
 
         $plugin->init();
     }
@@ -246,6 +241,13 @@ final class Pluguin
     public static function activationHook()
     {
         $pluguin = self::getInstance();
+        if ($pluguin->options === false) {
+            $pluguin->options = [
+                "plugins" => []
+            ];
+
+            $pluguin->addOptions();
+        }
     }
 
     public static function deactivationHook()
@@ -272,6 +274,12 @@ final class Pluguin
         }
     }
 
+    public static function uninstallHook()
+    {
+        $pluguin = self::getInstance();
+        delete_option("pluguin");
+    }
+
     public function activate($plugin)
     {
         $plugin->activate();
@@ -289,11 +297,6 @@ final class Pluguin
         unset($this->options[\plugin_basename($plugin->filePath())]);
 
         $this->updateOptions();
-    }
-
-    public static function uninstallHook()
-    {
-        $pluguin = self::getInstance();
     }
 
     public static function __callStatic($name, $args)
